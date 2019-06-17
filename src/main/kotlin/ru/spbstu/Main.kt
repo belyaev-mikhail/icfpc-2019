@@ -1,5 +1,8 @@
 package ru.spbstu
 
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
@@ -9,8 +12,13 @@ import org.graphstream.algorithm.AStar
 import org.graphstream.graph.Edge
 import org.graphstream.graph.Node
 import org.graphstream.graph.implementations.SingleGraph
+import ru.spbstu.ktuples.Tuple3
+import ru.spbstu.ktuples.jackson.KTuplesModule
 
-class Hello : CliktCommand() {
+
+val om = ObjectMapper().registerModule(KotlinModule()).registerModule(KTuplesModule())
+
+object Main : CliktCommand() {
     val count: Int by option(help="Number of greetings").int().default(1)
     val name: String? by option(help="The person to greet")
 
@@ -42,8 +50,7 @@ class Hello : CliktCommand() {
 
         graph.display(false)
 
-
     }
 }
 
-fun main(args: Array<String>) = Hello().main(args)
+fun main(args: Array<String>) = Main.main(args)
