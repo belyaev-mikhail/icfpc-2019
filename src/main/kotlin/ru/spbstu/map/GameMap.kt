@@ -27,7 +27,7 @@ data class Booster(val coords: Point, val type: Status)
 
 typealias Obstacle = Shape
 
-data class Map(
+data class GameMap(
         val corners: List<Point>,
         val obstacles: List<Obstacle>,
         val boosters: List<Booster>) {

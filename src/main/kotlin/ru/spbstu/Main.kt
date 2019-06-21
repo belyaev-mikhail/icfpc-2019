@@ -11,7 +11,7 @@ import org.graphstream.graph.Edge
 import org.graphstream.graph.Node
 import org.graphstream.graph.implementations.SingleGraph
 import ru.spbstu.ktuples.jackson.KTuplesModule
-import ru.spbstu.map.Map
+import ru.spbstu.map.GameMap
 import ru.spbstu.parse.parseFile
 import java.io.File
 
@@ -57,9 +57,9 @@ fun main(args: Array<String>) {
     val data = File("docs/part-1-initial").walkTopDown().filter { it.extension == "desc" }.map {
         parseFile(it.name, it.readText())
     }.toList()
-    
+
     for (datum in data.take(50)) {
-        val map = Map(datum)
+        val map = GameMap(datum)
 
         println(datum.name)
         println(map.toASCII())
