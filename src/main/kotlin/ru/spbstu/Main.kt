@@ -9,6 +9,7 @@ import kotlinx.coroutines.*
 import ru.spbstu.map.GameMap
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.astarBot
+import ru.spbstu.player.evenSmarterAstarBot
 import ru.spbstu.player.smarterAstarBot
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Robot
@@ -31,7 +32,7 @@ object Main : CliktCommand() {
         val data = File(file).let { parseFile(it.name, it.readText()) }
 
         val path = runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
-            val paths = listOf(::astarBot, ::smarterAstarBot)
+            val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
@@ -48,6 +49,7 @@ object Main : CliktCommand() {
 
         File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
             println("Solution for file $file: ${path?.joinToString("")}")
+            println("Solution score for file $file: ${path?.count()}")
             it.write(path?.map { it.toString() }?.joinToString(""))
         }
     }
@@ -57,15 +59,15 @@ object Main : CliktCommand() {
 
         if (gui) {
             val frame = sim.display(guiCellSize)
-            for (command in path) {
+            for(command in path) {
                 sim.apply(command)
-                delay((1000.0 / speed).toLong())
+                Thread.sleep((1000.0 / speed).toLong())
                 frame.repaint()
             }
             delay(5000)
             frame.dispose()
         } else {
-            for (command in path) {
+            for(command in path) {
                 sim.apply(command)
             }
         }
@@ -75,7 +77,7 @@ object Main : CliktCommand() {
 
     override fun run() {
         if (map != "all") {
-            handleMap("docs/tasks/$map.desc")
+            handleMap("docs/tasks/prob-$map.desc")
         } else {
             runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
                 val asyncs = File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {

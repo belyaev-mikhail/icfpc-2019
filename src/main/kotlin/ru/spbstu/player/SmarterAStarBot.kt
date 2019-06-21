@@ -7,6 +7,52 @@ import ru.spbstu.sim.ATTACH_MANUPULATOR
 import ru.spbstu.sim.Simulator
 import java.lang.Math.abs
 
+fun applyBoosters(sim: Simulator) = sequence {
+    when {
+        MANIPULATOR_EXTENSION in sim.currentRobot.boosters -> {
+            val manipulatorXRange = sim.currentRobot.manipulators.map { it.v0 }.sorted()
+            val manipulatorYRange = sim.currentRobot.manipulators.map { it.v1 }.sorted()
+
+            if (manipulatorXRange.toSet().size == 1) { // vertical extension
+                val newX = manipulatorXRange.first()
+
+                val yLeft = manipulatorYRange.first()
+                val yRight = manipulatorYRange.last()
+
+                val newY = if (abs(yLeft) < abs(yRight)) {
+                    yLeft - 1
+                } else {
+                    yRight + 1
+                }
+
+                val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
+
+                // sim.apply(extensionCommand)
+
+                yield(extensionCommand)
+
+            } else { // horizontal extension
+                val newY = manipulatorYRange.first()
+
+                val xLeft = manipulatorXRange.first()
+                val xRight = manipulatorXRange.last()
+
+                val newX = if (abs(xLeft) < abs(xRight)) {
+                    xLeft - 1
+                } else {
+                    xRight + 1
+                }
+
+                val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
+
+                // sim.apply(extensionCommand)
+
+                yield(extensionCommand)
+            }
+        }
+    }
+}
+
 fun smarterAstarBot(sim: Simulator) =
         sequence {
             while (true) {
@@ -20,49 +66,40 @@ fun smarterAstarBot(sim: Simulator) =
 
                 target ?: break
 
-                when {
-                    MANIPULATOR_EXTENSION in sim.currentRobot.boosters -> {
-                        val manipulatorXRange = sim.currentRobot.manipulators.map { it.v0 }.sorted()
-                        val manipulatorYRange = sim.currentRobot.manipulators.map { it.v1 }.sorted()
+                yieldAll(applyBoosters(sim))
 
-                        if (manipulatorXRange.toSet().size == 1) { // vertical extension
-                            val newX = manipulatorXRange.first()
+                val local = astarWalk(sim, target.key)
+                yieldAll(local)
+            }
+        }
 
-                            val yLeft = manipulatorYRange.first()
-                            val yRight = manipulatorYRange.last()
 
-                            val newY = if (abs(yLeft) < abs(yRight)) {
-                                yLeft - 1
-                            } else {
-                                yRight + 1
-                            }
+fun evenSmarterAstarBot(sim: Simulator) =
+        sequence {
+            while (true) {
+                yieldAll(applyBoosters(sim))
 
-                            val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
+                val closestBooster = sim.gameMap
+                        .cells
+                        .filter { it.value.booster != null }
+                        .filter { it.value.booster == MANIPULATOR_EXTENSION }
+                        .minBy { sim.currentRobot.pos.euclidDistance(it.key) }
 
-                            // sim.apply(extensionCommand)
-
-                            yield(extensionCommand)
-
-                        } else { // horizontal extension
-                            val newY = manipulatorYRange.first()
-
-                            val xLeft = manipulatorXRange.first()
-                            val xRight = manipulatorXRange.last()
-
-                            val newX = if (abs(xLeft) < abs(xRight)) {
-                                xLeft - 1
-                            } else {
-                                xRight + 1
-                            }
-
-                            val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
-
-                            // sim.apply(extensionCommand)
-
-                            yield(extensionCommand)
-                        }
-                    }
+                if (closestBooster != null && sim.currentRobot.pos.euclidDistance(closestBooster.key) < 5.0) {
+                    val local = astarWithoutTurnsWalk(sim, closestBooster.key)
+                    yieldAll(local)
                 }
+                yieldAll(applyBoosters(sim))
+
+                val target = sim.gameMap
+                        .cells
+                        .filter { it.value.status == Status.EMPTY }
+                        .minBy {
+                            sim.currentRobot.pos.euclidDistance(it.key)
+                        }
+
+
+                target ?: break
 
                 val local = astarWalk(sim, target.key)
                 yieldAll(local)
