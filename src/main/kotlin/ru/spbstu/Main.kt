@@ -5,6 +5,8 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
+import kotlinx.coroutines.*
+import kotlinx.coroutines.selects.select
 import ru.spbstu.map.*
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.astarBot
@@ -20,6 +22,7 @@ object Main : CliktCommand() {
     val guiCellSize: Int by option().int().default(10)
     val speed: Int by option().int().default(10)
     val solFolder: String by option().default("solutions")
+    val threads: Int by option().int().default(1)
 
 //    val count: Int by option(help = "Number of greetings").int().default(1)
 //    val name: String? by option(help = "The person to greet")
@@ -45,7 +48,7 @@ object Main : CliktCommand() {
         }
 
         File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
-            println("Current solution: ${path.joinToString("")}")
+            println("Solution for file $file: ${path.joinToString("")}")
             it.write(path.map { it.toString() }.joinToString(""))
         }
 
@@ -55,8 +58,14 @@ object Main : CliktCommand() {
         if (map != "all") {
             handleMap("docs/part-1-initial/$map.desc")
         } else {
-            File("docs/part-1-initial").walkTopDown().filter { it.extension == "desc" }.forEach {
-                handleMap(it.absolutePath)
+            runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
+                val asyncs = File("docs/part-1-initial").walkTopDown().toList().filter { it.extension == "desc" }.map {
+                    launch { handleMap(it.absolutePath) }
+                }
+
+                while(asyncs.any { it.isActive }) {
+                    yield()
+                }
             }
         }
     }
