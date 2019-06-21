@@ -33,7 +33,7 @@ object Main : CliktCommand() {
         val map = GameMap(data)
         val sim = Simulator(Robot(data.initial), map)
 
-        val path = astarBot(sim).memoize()
+        val path = smarterAstarBot(sim).memoize()
 
         if (gui) {
             val frame = sim.display(guiCellSize)

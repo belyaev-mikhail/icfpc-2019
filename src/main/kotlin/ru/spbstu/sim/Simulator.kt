@@ -2,12 +2,13 @@ package ru.spbstu.sim
 
 import ru.spbstu.map.*
 import ru.spbstu.map.BoosterType.*
-import ru.spbstu.map.Point
 import ru.spbstu.map.Status.*
 import ru.spbstu.util.dec
 import ru.spbstu.util.inc
-import java.awt.*
 import java.awt.Color
+import java.awt.Dimension
+import java.awt.Graphics
+import java.awt.Graphics2D
 import javax.swing.JFrame
 import javax.swing.JPanel
 
@@ -101,6 +102,7 @@ data class Robot(val pos: Point,
         is MoveCommand -> move(cmd.dir)
         is TURN_CW -> rotateCW()
         is TURN_CCW -> rotateCCW()
+        is ATTACH_MANUPULATOR -> attachManipulator(cmd.x, cmd.y)
         else -> this
     }
 
@@ -122,6 +124,12 @@ data class Robot(val pos: Point,
         val newManipulators = manipulators.map { (dx, dy) -> Point(-dy, dx) }
 
         return this.copy(orientation = newOrientation, manipulators = newManipulators)
+    }
+
+    fun attachManipulator(x: Int, y: Int): Robot {
+        val newManipulators = manipulators + Point(x, y)
+
+        return this.copy(manipulators = newManipulators)
     }
 
     val manipulatorPos: List<Point>
@@ -310,7 +318,7 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                     }
                 }
 
-                for(manip in currentRobot.manipulatorPos) {
+                for (manip in currentRobot.manipulatorPos) {
                     g.paint = Color.YELLOW
                     drawPoint(manip)
                 }

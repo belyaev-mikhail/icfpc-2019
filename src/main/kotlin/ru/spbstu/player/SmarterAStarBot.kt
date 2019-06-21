@@ -22,8 +22,8 @@ fun smarterAstarBot(sim: Simulator) =
 
                 when {
                     MANIPULATOR_EXTENSION in sim.currentRobot.boosters -> {
-                        val manipulatorXRange = sim.currentRobot.manipulatorPos.map { it.v0 }.sorted()
-                        val manipulatorYRange = sim.currentRobot.manipulatorPos.map { it.v1 }.sorted()
+                        val manipulatorXRange = sim.currentRobot.manipulators.map { it.v0 }.sorted()
+                        val manipulatorYRange = sim.currentRobot.manipulators.map { it.v1 }.sorted()
 
                         if (manipulatorXRange.toSet().size == 1) { // vertical extension
                             val newX = manipulatorXRange.first()
@@ -39,7 +39,7 @@ fun smarterAstarBot(sim: Simulator) =
 
                             val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
 
-                            sim.apply(extensionCommand)
+                            // sim.apply(extensionCommand)
 
                             yield(extensionCommand)
 
@@ -57,7 +57,7 @@ fun smarterAstarBot(sim: Simulator) =
 
                             val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
 
-                            sim.apply(extensionCommand)
+                            // sim.apply(extensionCommand)
 
                             yield(extensionCommand)
                         }
