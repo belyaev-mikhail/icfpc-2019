@@ -13,8 +13,7 @@ fun astarBot(sim: Simulator) =
                     .cells
                     .filter { it.value.status == Status.EMPTY }
                     .minBy {
-                        sim.currentRobot.pos.euclidDistance(it.key) -
-                                0.1 * it.key.neighbours().count { sim.gameMap[it].status == Status.WRAP }
+                        sim.currentRobot.pos.euclidDistance(it.key)
                     }
 
             target ?: break

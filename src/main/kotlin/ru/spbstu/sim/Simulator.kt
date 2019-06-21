@@ -2,12 +2,13 @@ package ru.spbstu.sim
 
 import ru.spbstu.map.*
 import ru.spbstu.map.BoosterType.*
-import ru.spbstu.map.Point
 import ru.spbstu.map.Status.*
 import ru.spbstu.util.dec
 import ru.spbstu.util.inc
-import java.awt.*
 import java.awt.Color
+import java.awt.Dimension
+import java.awt.Graphics
+import java.awt.Graphics2D
 import javax.swing.JFrame
 import javax.swing.JPanel
 
@@ -62,7 +63,19 @@ object USE_DRILL : Command() {
 }
 
 data class ATTACH_MANUPULATOR(val x: Int, val y: Int) : Command() {
+    constructor(p: Point) : this(p.v0, p.v1)
+
     override fun toString(): String = "B($x,$y)"
+}
+
+object RESET : Command() {
+    override fun toString(): String = "R"
+}
+
+data class SHIFT_TO(val x: Int, val y: Int) : Command() {
+    constructor(p: Point) : this(p.v0, p.v1)
+
+    override fun toString(): String = "T($x,$y)"
 }
 
 enum class Orientation(val dx: Int, val dy: Int) {
@@ -101,6 +114,7 @@ data class Robot(val pos: Point,
         is MoveCommand -> move(cmd.dir)
         is TURN_CW -> rotateCW()
         is TURN_CCW -> rotateCCW()
+        is ATTACH_MANUPULATOR -> attachManipulator(cmd.x, cmd.y)
         else -> this
     }
 
@@ -122,6 +136,12 @@ data class Robot(val pos: Point,
         val newManipulators = manipulators.map { (dx, dy) -> Point(-dy, dx) }
 
         return this.copy(orientation = newOrientation, manipulators = newManipulators)
+    }
+
+    fun attachManipulator(x: Int, y: Int): Robot {
+        val newManipulators = manipulators + Point(x, y)
+
+        return this.copy(manipulators = newManipulators)
     }
 
     val manipulatorPos: List<Point>
@@ -149,6 +169,8 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
 
     var currentRobot: Robot = initialRobot
     var gameMap: GameMap = initialGameMap
+
+    var teleports: Set<Point> = setOf()
 
     fun die(msg: String): Nothing = throw SimulatorException(msg, currentRobot, gameMap)
 
@@ -253,6 +275,26 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
 
                 currentRobot = currentRobot.copy(boosters = boosters, manipulators = manupulators)
             }
+
+            is RESET -> {
+                val boosters = currentRobot.boosters.toMutableMap()
+                if (TELEPORT !in boosters) die("Cannot use teleport")
+                boosters.dec(TELEPORT)
+
+                if (gameMap[currentRobot.pos].booster == MYSTERY || currentRobot.pos in teleports)
+                    die("Cannot reset teleport here")
+
+                teleports += currentRobot.pos
+            }
+
+            is SHIFT_TO -> {
+                val newPos = Point(cmd.x, cmd.y)
+
+                if (newPos !in teleports)
+                    die("Cannot shift with $cmd")
+
+                currentRobot = currentRobot.copy(pos = newPos)
+            }
         }
 
         repaint()
@@ -302,7 +344,10 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                             BoosterType.FAST_WHEELS -> g.paint = Color(0xB5651D).darker()
                             BoosterType.DRILL -> g.paint = Color.GREEN
                             BoosterType.MYSTERY -> g.paint = Color.BLUE
+                            BoosterType.TELEPORT -> g.paint = Color.MAGENTA
                         }
+
+                        if (p in teleports) g.paint = Color.PINK
 
                         // TODO: handle wrap + booster
 
@@ -310,7 +355,7 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                     }
                 }
 
-                for(manip in currentRobot.manipulatorPos) {
+                for (manip in currentRobot.manipulatorPos) {
                     g.paint = Color.YELLOW
                     drawPoint(manip)
                 }
