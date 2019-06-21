@@ -25,7 +25,9 @@ enum class Status(val ascii: String) {
     fun toASCII(): String = ascii
 }
 
-typealias Point = Tuple2<Int, Int>
+//typealias Point = Tuple2<Int, Int>
+data class Point(val v0: Int, val v1: Int)
+
 
 typealias Shape = List<Point>
 

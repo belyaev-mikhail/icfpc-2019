@@ -1,5 +1,6 @@
 package ru.spbstu.sim
 
+import org.organicdesign.fp.oneOf.Or
 import ru.spbstu.map.GameMap
 import ru.spbstu.map.Point
 import ru.spbstu.map.Status.*
@@ -10,7 +11,7 @@ import ru.spbstu.util.inc
 
 interface Command
 
-interface MoveCommand {
+interface MoveCommand: Command {
     val dir: Point
 }
 
@@ -88,6 +89,8 @@ enum class Orientation(val dx: Int, val dy: Int) {
     }
 }
 
+operator fun Point.plus(orientation: Point) = copy(v0 = v0 + orientation.v0, v1 = v1 + orientation.v1)
+
 data class Robot(val pos: Point,
                  val orientation: Orientation = Orientation.RIGHT,
                  val manipulators: List<Point> = listOf(
@@ -95,6 +98,17 @@ data class Robot(val pos: Point,
                  ),
                  val boosters: Map<Booster, Int> = mutableMapOf(),
                  val activeBoosters: Map<Booster, Int> = mutableMapOf()) {
+
+    fun doCommand(cmd: Command) = when(cmd) {
+        is MoveCommand -> move(cmd.dir)
+        is TURN_CW -> rotateCW()
+        is TURN_CCW -> rotateCCW()
+        else -> this
+    }
+
+    fun move(dir: Point): Robot {
+        return this.copy(pos = pos + dir)
+    }
 
     fun rotateCW(): Robot {
         val newOrientation = orientation.rotateCW

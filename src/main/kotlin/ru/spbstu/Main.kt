@@ -14,7 +14,12 @@ import org.graphstream.graph.implementations.SingleGraph
 import org.organicdesign.fp.collections.PersistentHashMap
 import ru.spbstu.ktuples.jackson.KTuplesModule
 import ru.spbstu.map.GameMap
+import ru.spbstu.map.Point
 import ru.spbstu.parse.parseFile
+import ru.spbstu.player.astarWalk
+import ru.spbstu.sim.Orientation
+import ru.spbstu.sim.Robot
+import ru.spbstu.sim.Simulator
 import java.io.File
 
 object Main : CliktCommand() {
@@ -27,11 +32,16 @@ object Main : CliktCommand() {
 
     override fun run() {
         val pshm = PersistentHashMap.empty<String, Int>()
-        println(pshm.assoc("A", 1).assoc("B", 2).assoc("C", 4))
 
         if (map != "all") {
             val data = File("docs/part-1-initial/$map.desc").let { parseFile(it.name, it.readText()) }
             val map = GameMap(data)
+            val sim = Simulator(Robot(data.initial), map)
+
+            val path = astarWalk(sim, Point(25, 25))
+
+            println(path)
+
             println(data.name)
             println(map.toASCII())
             if(gui) map.display(guiCellSize)
@@ -42,6 +52,8 @@ object Main : CliktCommand() {
 
             for (datum in data.take(50)) {
                 val map = GameMap(datum)
+
+
 
                 println(datum.name)
                 println(map.toASCII())
