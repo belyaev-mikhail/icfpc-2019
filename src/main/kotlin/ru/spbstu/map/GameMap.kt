@@ -1,7 +1,7 @@
 package ru.spbstu.map
 
 import ru.spbstu.ktuples.Tuple2
-import ru.spbstu.map.Map.GUISettings.cellSize
+import ru.spbstu.map.GameMap.GUISettings.cellSize
 import ru.spbstu.parse.Task
 import java.awt.Color
 import java.awt.Dimension

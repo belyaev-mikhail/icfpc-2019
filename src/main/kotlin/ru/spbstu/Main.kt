@@ -13,7 +13,7 @@ import org.graphstream.graph.Node
 import org.graphstream.graph.implementations.SingleGraph
 import org.organicdesign.fp.collections.PersistentHashMap
 import ru.spbstu.ktuples.jackson.KTuplesModule
-import ru.spbstu.map.Map
+import ru.spbstu.map.GameMap
 import ru.spbstu.parse.parseFile
 import java.io.File
 
@@ -30,7 +30,7 @@ object Main : CliktCommand() {
 
         if (map != "all") {
             val data = File("docs/part-1-initial/$map.desc").let { parseFile(it.name, it.readText()) }
-            val map = Map(data)
+            val map = GameMap(data)
             println(data.name)
             println(map.toASCII())
             if(gui) map.display()
@@ -40,7 +40,7 @@ object Main : CliktCommand() {
             }.toList()
 
             for (datum in data.take(50)) {
-                val map = Map(datum)
+                val map = GameMap(datum)
 
                 println(datum.name)
                 println(map.toASCII())
