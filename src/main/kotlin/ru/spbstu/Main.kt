@@ -20,6 +20,7 @@ import java.io.File
 object Main : CliktCommand() {
     val map: String by option(help = "Map to run on").default("all")
     val gui: Boolean by option().flag(default = false)
+    val guiCellSize: Int by option().int().default(10)
 
 //    val count: Int by option(help = "Number of greetings").int().default(1)
 //    val name: String? by option(help = "The person to greet")
@@ -33,7 +34,7 @@ object Main : CliktCommand() {
             val map = GameMap(data)
             println(data.name)
             println(map.toASCII())
-            if(gui) map.display()
+            if(gui) map.display(guiCellSize)
         } else {
             val data = File("docs/part-1-initial").walkTopDown().filter { it.extension == "desc" }.map {
                 parseFile(it.name, it.readText())

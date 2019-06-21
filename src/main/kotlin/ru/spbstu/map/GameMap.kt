@@ -1,7 +1,6 @@
 package ru.spbstu.map
 
 import ru.spbstu.ktuples.Tuple2
-import ru.spbstu.map.GameMap.GUISettings.cellSize
 import ru.spbstu.parse.Task
 import java.awt.Color
 import java.awt.Dimension
@@ -112,11 +111,7 @@ data class GameMap(
         return res.toString()
     }
 
-    private object GUISettings {
-        const val cellSize = 10
-    }
-
-    fun toPanel(): JPanel {
+    fun toPanel(cellSize: Int): JPanel {
         return object: JPanel() {
             init {
                 this.preferredSize = Dimension((maxX - minX + 2) * cellSize, (maxY - minY + 2) * cellSize)
@@ -158,9 +153,9 @@ data class GameMap(
         }
     }
 
-    fun display() {
+    fun display(cellSize: Int) {
         val frame = JFrame()
-        frame.add(toPanel())
+        frame.add(toPanel(cellSize))
         frame.pack()
         frame.isVisible = true
     }
