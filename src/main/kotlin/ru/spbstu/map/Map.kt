@@ -1,49 +1,58 @@
 package ru.spbstu.map
 
 import ru.spbstu.ktuples.Tuple2
-import java.awt.geom.Path2D
+import ru.spbstu.parse.Task
 
-enum class Status {
-    EMPTY, WRAP, WALL, BOOSTER_B, BOOSTER_F, BOOSTER_L, BOOSTER_X
+enum class Status(val ascii: String) {
+    EMPTY("."), WRAP("+"), WALL("#"), BOOSTER_B("B"), BOOSTER_F("F"), BOOSTER_L("L"), BOOSTER_X("X");
+
+    companion object {
+        fun fromBoosterType(type: String) = when (type) {
+            "B" -> BOOSTER_B
+            "F" -> BOOSTER_F
+            "L" -> BOOSTER_L
+            "X" -> BOOSTER_X
+            else -> TODO()
+        }
+    }
+
+    fun toASCII(): String = ascii
 }
 
 typealias Point = Tuple2<Int, Int>
 
 typealias Shape = List<Point>
 
-fun Shape.toPath2D(): Path2D {
-    val path2d = Path2D.Float()
+data class Booster(val coords: Point, val type: Status)
 
-    val (xStart, yStart) = first()
-
-    path2d.moveTo(xStart.toDouble(), yStart.toDouble())
-
-    for ((x, y) in drop(1)) {
-        path2d.lineTo(x.toFloat(), y.toFloat())
-    }
-
-    path2d.closePath()
-
-    return path2d
-}
-
-fun Path2D.contains(p: Point): Boolean = contains(p.v0 + 0.5, p.v1 + 0.5)
-
-data class Obstacle(val corners: List<Point>)
+typealias Obstacle = Shape
 
 data class Map(
         val corners: List<Point>,
-        val obstacles: List<Obstacle>) {
+        val obstacles: List<Obstacle>,
+        val boosters: List<Booster>) {
+
+    constructor(task: Task) : this(task.map, task.obstacles, task.boosters)
 
     val cells = mutableMapOf<Point, Status>()
+
+    val minX: Int
+    val maxX: Int
+    val minY: Int
+    val maxY: Int
 
     init {
         val mapPath = corners.toPath2D()
 
         val mapBounds = mapPath.bounds
 
-        for (x in mapBounds.minX.toInt()..mapBounds.maxX.toInt()) {
-            for (y in mapBounds.minY.toInt()..mapBounds.maxY.toInt()) {
+        minX = mapBounds.minX.toInt()
+        maxX = mapBounds.maxX.toInt()
+        minY = mapBounds.minY.toInt()
+        maxY = mapBounds.maxY.toInt()
+
+        for (x in minX..maxX) {
+            for (y in minY..maxY) {
                 val p = Point(x, y)
 
                 if (mapPath.contains(p)) {
@@ -55,7 +64,7 @@ data class Map(
         }
 
         for (obstacle in obstacles) {
-            val obsPath = obstacle.corners.toPath2D()
+            val obsPath = obstacle.toPath2D()
 
             val obsBounds = obsPath.bounds
 
@@ -69,5 +78,30 @@ data class Map(
                 }
             }
         }
+
+        for ((coords, status) in boosters) {
+            cells[coords] = status
+        }
+    }
+
+    operator fun get(p: Point): Status = cells[p] ?: Status.WALL
+
+    operator fun set(p: Point, s: Status) {
+        cells[p] = s
+    }
+
+    fun toASCII(): String {
+        val res = StringBuilder()
+
+        for (y in maxY downTo minY) {
+            for (x in minX..maxX) {
+                val p = Point(x, y)
+
+                res.append(cells[p]?.toASCII())
+            }
+            res.append("\n")
+        }
+
+        return res.toString()
     }
 }

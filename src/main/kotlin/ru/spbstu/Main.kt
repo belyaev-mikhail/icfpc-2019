@@ -11,6 +11,8 @@ import org.graphstream.graph.Edge
 import org.graphstream.graph.Node
 import org.graphstream.graph.implementations.SingleGraph
 import ru.spbstu.ktuples.jackson.KTuplesModule
+import ru.spbstu.map.Map
+import ru.spbstu.parse.parseFile
 import java.io.File
 
 
@@ -53,7 +55,13 @@ object Main : CliktCommand() {
 
 fun main(args: Array<String>) {
     val data = File("docs/part-1-initial").walkTopDown().filter { it.extension == "desc" }.map {
-        parseFile(it.readText())
+        parseFile(it.name, it.readText())
     }.toList()
-    println(data)
+    
+    for (datum in data.take(50)) {
+        val map = Map(datum)
+
+        println(datum.name)
+        println(map.toASCII())
+    }
 }
