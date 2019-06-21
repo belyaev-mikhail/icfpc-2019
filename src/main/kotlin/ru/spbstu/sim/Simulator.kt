@@ -151,7 +151,10 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
         repaint()
     }
 
-    fun apply(cmd: Command) {
+    fun apply(cmd: Command, nested: Boolean = false) {
+
+        // nested == true means we're processing second part of fast wheels
+
         when (cmd) {
             is MoveCommand -> {
                 val newPos = currentRobot.pos.moveTo(cmd.dir)
@@ -162,7 +165,10 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                     EMPTY, WRAP -> {
                     }
                     WALL -> {
-                        if (DRILL !in currentRobot.activeBoosters) die("Cannot move through wall without a drill")
+                        val hasDrill = DRILL in currentRobot.activeBoosters
+
+                        if (!nested && !hasDrill) die("Cannot move through wall without a drill")
+                        else if (nested && !hasDrill) return
                     }
                 }
 
@@ -227,6 +233,10 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
 
         repaint()
 
-        currentRobot = currentRobot.tick()
+        if (!nested && cmd is MoveCommand && FAST_WHEELS in currentRobot.activeBoosters) {
+            apply(cmd, true)
+        }
+
+        if (!nested) currentRobot = currentRobot.tick()
     }
 }
