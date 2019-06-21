@@ -18,6 +18,8 @@ fun Point.euclidDistance(that: Point) = sqrt(sqr(0.0 + this.v0 - that.v0) + sqr(
 
 fun Point.moveTo(dir: Orientation) = Point(v0 + dir.dx, v1 + dir.dy)
 
+fun Point.neighbours() = Orientation.values().map { this.moveTo(it) }
+
 fun Shape.toPath2D(): Path2D {
     val path2d = Path2D.Float()
 
