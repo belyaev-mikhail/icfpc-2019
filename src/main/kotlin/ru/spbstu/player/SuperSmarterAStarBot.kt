@@ -3,12 +3,11 @@ package ru.spbstu.player
 import org.graphstream.graph.Edge
 import org.graphstream.graph.Graph
 import org.graphstream.graph.Node
-import org.graphstream.graph.implementations.AbstractEdge
-import org.graphstream.graph.implementations.DefaultGraph
 import org.graphstream.graph.implementations.SingleGraph
-import org.graphstream.graph.implementations.SingleNode
 import org.graphstream.algorithm.Kruskal
+import org.graphstream.graph.DepthFirstIterator
 import ru.spbstu.map.*
+import ru.spbstu.sim.ATTACH_MANUPULATOR
 import ru.spbstu.sim.Simulator
 import ru.spbstu.wheels.isNotEmpty
 import ru.spbstu.wheels.queue
@@ -155,39 +154,121 @@ fun display(cellSize: Int, map: GameMap, blobs: List<Blob>): JFrame {
     // frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
 }
 
+fun optimizeBlobs(blobs: List<Blob>): List<Blob> {
+    val maxSize = BLOB_SIZE * BLOB_SIZE
+    val result = blobs.toMutableList()
+    while (true) {
+        val candidate = result.find { it.points.size < 0.2 * maxSize } ?: break
+        val mergeWith = result.find { it != candidate && it.isNeighbor(candidate) } ?: break
+        result.remove(candidate)
+        result.remove(mergeWith)
+        result.add(Blob(mergeWith.initial, mergeWith.points + candidate.points))
+    }
+    return result
+}
+
+fun getBlobsOrdered(initial: Node, allNodes: List<Node>, edges: List<Edge>): List<Blob> {
+    val graph = SingleGraph("minimal")
+    val blobs = allNodes.map { it.id to it.getAttribute<Blob>("blob") }.toMap()
+    blobs.keys.forEach {
+        graph.addNode<Node>(it)
+    }
+    edges.forEach {
+        val from = it.getSourceNode<Node>()
+        val to = it.getTargetNode<Node>()
+        graph.addEdge<Edge>("${from.id},${to.id}", from.id, to.id, false)
+    }
+    val nodes = arrayListOf<Node>()
+    val iter = DepthFirstIterator<Node>(graph.getNode(initial.id))
+    iter.forEach { nodes.add(it) }
+    return nodes.map { blobs[it.id]!! }
+}
 
 fun superSmarterAstarBot(sim: Simulator) =
         sequence {
-            val blobs = findBlobs(sim.gameMap)
+            val initialBlobs = findBlobs(sim.gameMap)
+            val blobs = optimizeBlobs(initialBlobs)
             val graph = findGraph(blobs)
             val kruskal = Kruskal()
             kruskal.init(graph)
             kruskal.compute()
 
-            val edges = kruskal.getTreeEdges<Edge>()
-
             val initialBlobIdx = blobs.indexOfFirst { sim.initialRobot.pos in it }
             val rootNode = graph.getNode<Node>("$initialBlobIdx")
 
+            val orderedBlobs = getBlobsOrdered(rootNode, graph.getNodeSet<Node>().toList(), kruskal.getTreeEdges<Edge>().toList())
 
+            for (blob in orderedBlobs) {
+//                while (true) {
+//                    val blobCells = blob.points.map { it to sim.gameMap[it] }.filter { it.second.status == Status.EMPTY }
+//                    val target = blobCells
+//                            .minBy {
+//                                sim.currentRobot.pos.euclidDistance(it.first) -
+//                                        0.1 * it.first.neighbours().count { sim.gameMap[it].status == Status.WRAP }
+//                            }
+//
+//                    target ?: break
+//
+//                    val local = astarWalk(sim, target.first)
+//                    yieldAll(local)
+//                }
 
-            display(10, sim.gameMap, blobs)
+                while (true) {
+                    val blobCells = blob.points.map { it to sim.gameMap[it] }.toMap().filter { it.value.status == Status.EMPTY }
+                    val target = blobCells
+                            .minBy {
+                                sim.currentRobot.pos.euclidDistance(it.key)
+                            }
 
-            return@sequence
+                    target ?: break
 
-            while (true) {
-                val target = sim
-                        .gameMap
-                        .cells
-                        .filter { it.value.status == Status.EMPTY }
-                        .minBy {
-                            sim.currentRobot.pos.euclidDistance(it.key) -
-                                    0.1 * it.key.neighbours().count { sim.gameMap[it].status == Status.WRAP }
+                    when {
+                        BoosterType.MANIPULATOR_EXTENSION in sim.currentRobot.boosters -> {
+                            val manipulatorXRange = sim.currentRobot.manipulators.map { it.v0 }.sorted()
+                            val manipulatorYRange = sim.currentRobot.manipulators.map { it.v1 }.sorted()
+
+                            if (manipulatorXRange.toSet().size == 1) { // vertical extension
+                                val newX = manipulatorXRange.first()
+
+                                val yLeft = manipulatorYRange.first()
+                                val yRight = manipulatorYRange.last()
+
+                                val newY = if (Math.abs(yLeft) < Math.abs(yRight)) {
+                                    yLeft - 1
+                                } else {
+                                    yRight + 1
+                                }
+
+                                val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
+
+                                // sim.apply(extensionCommand)
+
+                                yield(extensionCommand)
+
+                            } else { // horizontal extension
+                                val newY = manipulatorYRange.first()
+
+                                val xLeft = manipulatorXRange.first()
+                                val xRight = manipulatorXRange.last()
+
+                                val newX = if (Math.abs(xLeft) < Math.abs(xRight)) {
+                                    xLeft - 1
+                                } else {
+                                    xRight + 1
+                                }
+
+                                val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
+
+                                // sim.apply(extensionCommand)
+
+                                yield(extensionCommand)
+                            }
                         }
+                    }
 
-                target ?: break
+                    val local = astarWalk(sim, target.key)
+                    yieldAll(local)
+                }
 
-                val local = astarWalk(sim, target.key)
-                yieldAll(local)
             }
         }
