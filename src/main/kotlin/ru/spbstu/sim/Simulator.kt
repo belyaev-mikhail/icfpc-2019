@@ -154,9 +154,11 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
             // TODO: handle visibility
             val (status, _) = gameMap[mp]
 
-            if (status != WALL) {
-                gameMap[mp] = gameMap[mp].copy(status = WRAP)
-            }
+            if (status != EMPTY) continue
+
+            if (!gameMap.isVisible(currentRobot.pos, mp)) continue
+
+            gameMap[mp] = gameMap[mp].copy(status = WRAP)
         }
     }
 

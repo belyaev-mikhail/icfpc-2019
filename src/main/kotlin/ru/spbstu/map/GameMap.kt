@@ -9,7 +9,7 @@ import java.awt.Graphics
 import java.awt.Graphics2D
 import javax.swing.JFrame
 import javax.swing.JPanel
-import javax.swing.WindowConstants
+import kotlin.math.sign
 
 class MapException(msg: String) : Exception(msg)
 
@@ -123,6 +123,60 @@ data class GameMap(
 
     operator fun set(p: Point, c: Cell) {
         cells[p] = c
+    }
+
+    fun isVisible(from: Point, to: Point): Boolean {
+        val points = getSupercoverLine(from, to)
+
+        for (p in points) {
+            if (get(p).status == WALL) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    fun getSupercoverLine(from: Point, to: Point): List<Point> {
+        val dx = to.v0 - from.v0
+        val dy = to.v1 - from.v1
+
+        val nx = Math.abs(dx)
+        val ny = Math.abs(dy)
+
+        val signX = sign(dx.toFloat()).toInt()
+        val signY = sign(dy.toFloat()).toInt()
+
+        var p = from
+
+        val points = mutableListOf(p)
+
+        var ix = 0
+        var iy = 0
+
+        while (ix < nx || iy < ny) {
+            when {
+                (0.5 + ix) / nx > (0.5 + iy) / ny -> {
+                    // next step is vertical
+                    p = p.copy(v1 = p.v1 + signY)
+                    iy++
+                }
+                (0.5 + ix) / nx < (0.5 + iy) / ny -> {
+                    // next step is horizontal
+                    p = p.copy(v0 = p.v0 + signX)
+                    ix++
+                }
+                else -> {
+                    // next step is diagonal
+                    p = p.copy(v0 = p.v0 + signX, v1 = p.v1 + signY)
+                    ix++
+                    iy++
+                }
+            }
+            points += p
+        }
+
+        return points
     }
 
     fun toASCII(): String {
