@@ -56,10 +56,10 @@ object Main : CliktCommand() {
 
     override fun run() {
         if (map != "all") {
-            handleMap("docs/part-1-initial/$map.desc")
+            handleMap("docs/tasks/$map.desc")
         } else {
             runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
-                val asyncs = File("docs/part-1-initial").walkTopDown().toList().filter { it.extension == "desc" }.map {
+                val asyncs = File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
                     launch { handleMap(it.absolutePath) }
                 }
 
