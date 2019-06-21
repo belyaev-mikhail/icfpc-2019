@@ -9,6 +9,7 @@ import kotlinx.coroutines.*
 import ru.spbstu.map.GameMap
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.astarBot
+import ru.spbstu.player.persistentBot
 import ru.spbstu.player.smarterAstarBot
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Robot
@@ -32,7 +33,7 @@ object Main : CliktCommand() {
         val data = File(file).let { parseFile(it.name, it.readText()) }
 
         val path = runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
-            val paths = listOf(::astarBot, ::smarterAstarBot)
+            val paths = listOf(::persistentBot)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
