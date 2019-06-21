@@ -1,6 +1,7 @@
 package ru.spbstu.player
 
 import ru.spbstu.map.Point
+import ru.spbstu.map.Status
 import ru.spbstu.map.manhattanDistance
 import ru.spbstu.sim.*
 import ru.spbstu.wheels.getOption
@@ -63,7 +64,8 @@ fun astarWalk(sim: Simulator, target: Point): List<Command> {
             RobotAndCommand(robot, USE_DRILL),
             heur = { (robot, _) ->
                 (robot.manipulatorPos.map { it.manhattanDistance(target) }.min()
-                        ?: Int.MAX_VALUE).toDouble()
+                        ?: Int.MAX_VALUE).toDouble() +
+                        (robot.manipulatorPos.count { sim.gameMap[it].status == Status.EMPTY }.toDouble() / robot.manipulatorPos.size)
             },
             goal = { (robot, _) ->
                 robot.manipulatorPos.contains(target) && sim.gameMap.isVisible(robot.pos, target)
