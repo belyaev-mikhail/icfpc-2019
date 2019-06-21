@@ -63,6 +63,8 @@ object USE_DRILL : Command() {
 }
 
 data class ATTACH_MANUPULATOR(val x: Int, val y: Int) : Command() {
+    constructor(p: Point) : this(p.v0, p.v1)
+
     override fun toString(): String = "B($x,$y)"
 }
 
@@ -71,6 +73,8 @@ object RESET : Command() {
 }
 
 data class SHIFT_TO(val x: Int, val y: Int) : Command() {
+    constructor(p: Point) : this(p.v0, p.v1)
+
     override fun toString(): String = "T($x,$y)"
 }
 
@@ -340,7 +344,10 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                             BoosterType.FAST_WHEELS -> g.paint = Color(0xB5651D).darker()
                             BoosterType.DRILL -> g.paint = Color.GREEN
                             BoosterType.MYSTERY -> g.paint = Color.BLUE
+                            BoosterType.TELEPORT -> g.paint = Color.MAGENTA
                         }
+
+                        if (p in teleports) g.paint = Color.PINK
 
                         // TODO: handle wrap + booster
 

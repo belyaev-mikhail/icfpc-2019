@@ -1,6 +1,7 @@
 package ru.spbstu.parse
 
 import ru.spbstu.map.*
+import ru.spbstu.sim.*
 
 data class Task(val name: String, val map: Shape, val initial: Point, val obstacles: List<Shape>, val boosters: List<Booster>)
 
@@ -33,3 +34,29 @@ fun parseFile(name: String, data: String): Task {
             parseBoosters(boosters)
     )
 }
+
+fun parseAnswer(data: String): List<Command> {
+    val splData = data.split(Regex("[() ]"))
+    val result = mutableListOf<Command>()
+    splData.mapIndexed { index, s ->
+        s.map {
+            when (it) {
+                'R' -> RESET
+                'W' -> MOVE_UP
+                'S' -> MOVE_DOWN
+                'A' -> MOVE_LEFT
+                'D' -> MOVE_RIGHT
+                'Z' -> NOOP
+                'E' -> TURN_CW
+                'Q' -> TURN_CCW
+                'B' -> ATTACH_MANUPULATOR(parsePoint(splData[index + 1]))
+                'F' -> USE_FAST_WHEELS
+                'L' -> USE_DRILL
+                'T' -> SHIFT_TO(parsePoint(splData[index + 1]))
+                else -> null
+            }
+        }.filterNotNull().forEach { result.add(it) }
+    }
+    return result
+}
+
