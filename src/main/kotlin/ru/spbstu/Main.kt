@@ -8,9 +8,7 @@ import com.github.ajalt.clikt.parameters.types.int
 import kotlinx.coroutines.*
 import ru.spbstu.map.GameMap
 import ru.spbstu.parse.parseFile
-import ru.spbstu.player.astarBot
-import ru.spbstu.player.evenSmarterAstarBot
-import ru.spbstu.player.smarterAstarBot
+import ru.spbstu.player.*
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Robot
 import ru.spbstu.sim.Simulator
@@ -32,25 +30,27 @@ object Main : CliktCommand() {
         val data = File(file).let { parseFile(it.name, it.readText()) }
 
         val path = runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
-            val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot)
+            val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot,
+                    ::priorityAstarBot,::smarterPriorityAstarBot, ::evenSmarterPriorityAstarBot)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 
-                        async { handleMapSingle(sim, it) }
+                        it.name to async { handleMapSingle(sim, it) }
                     }
 
-            while (paths.any { it.isActive }) {
+            while (paths.any { it.second.isActive }) {
                 yield()
             }
 
-            paths.map { it.await() }.minBy { it.count() }
+            paths.map { it.first to it.second.await() }.minBy { it.second.count() }
         }
 
         File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
-            println("Solution for file $file: ${path?.joinToString("")}")
-            println("Solution score for file $file: ${path?.count()}")
-            it.write(path?.map { it.toString() }?.joinToString(""))
+            println("Solution for file $file: ${path?.second?.joinToString("")}")
+            println("Solution score for file $file: ${path?.second?.count()}")
+            println("Best solution for file $file is ${path?.first}")
+            it.write(path?.second?.map { it.toString() }?.joinToString(""))
         }
     }
 
@@ -77,7 +77,8 @@ object Main : CliktCommand() {
 
     override fun run() {
         if (map != "all") {
-            handleMap("docs/tasks/prob-$map.desc")
+            val filename = "000$map".takeLast(3)
+            handleMap("docs/tasks/prob-$filename.desc")
         } else {
             runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
                 val asyncs = File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
