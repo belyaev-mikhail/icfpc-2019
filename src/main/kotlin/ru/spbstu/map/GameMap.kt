@@ -1,6 +1,5 @@
 package ru.spbstu.map
 
-import ru.spbstu.ktuples.Tuple2
 import ru.spbstu.map.Status.*
 import ru.spbstu.parse.Task
 import ru.spbstu.sim.Robot
@@ -20,13 +19,14 @@ data class Cell(val status: Status, val booster: BoosterType?) {
     fun toASCII(): String = when (status) {
         EMPTY -> booster?.toASCII() ?: status.toASCII()
         WRAP -> booster?.toASCII()?.toLowerCase() ?: status.toASCII()
-        WALL -> status.toASCII()
+        WALL, SUPERWALL -> status.toASCII()
     }
 
     companion object {
         val Empty = Cell(EMPTY)
         val Wrap = Cell(WRAP)
         val Wall = Cell(WALL)
+        val Superwall = Cell(SUPERWALL)
     }
 }
 
@@ -47,9 +47,16 @@ enum class BoosterType(val timer: Int, val ascii: String) {
 }
 
 enum class Status(val ascii: String) {
-    EMPTY("."), WRAP("+"), WALL("#");
+    EMPTY("."), WRAP("+"), WALL("#"), SUPERWALL("@");
 
     fun toASCII(): String = ascii
+
+    val isWall by lazy {
+        when (this) {
+            WALL, SUPERWALL -> true
+            else -> false
+        }
+    }
 }
 
 //typealias Point = Tuple2<Int, Int>
@@ -93,7 +100,7 @@ data class GameMap(
                 if (mapPath.contains(p)) {
                     cells[p] = Cell.Empty
                 } else {
-                    cells[p] = Cell.Wall
+                    cells[p] = Cell.Superwall
                 }
             }
         }
@@ -120,7 +127,7 @@ data class GameMap(
         }
     }
 
-    operator fun get(p: Point): Cell = cells[p] ?: Cell.Wall
+    operator fun get(p: Point): Cell = cells[p] ?: Cell.Superwall
 
     operator fun set(p: Point, c: Cell) {
         cells[p] = c
@@ -130,7 +137,7 @@ data class GameMap(
         val points = getSupercoverLine(from, to)
 
         for (p in points) {
-            if (get(p).status == WALL) {
+            if (get(p).status.isWall) {
                 return false
             }
         }

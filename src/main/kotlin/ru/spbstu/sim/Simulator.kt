@@ -97,7 +97,7 @@ data class Robot(val pos: Point,
                  val boosters: Map<BoosterType, Int> = mutableMapOf(),
                  val activeBoosters: Map<BoosterType, Int> = mutableMapOf()) {
 
-    fun doCommand(cmd: Command) = when(cmd) {
+    fun doCommand(cmd: Command) = when (cmd) {
         is MoveCommand -> move(cmd.dir)
         is TURN_CW -> rotateCW()
         is TURN_CCW -> rotateCCW()
@@ -189,6 +189,10 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
 
                         if (!nested && !hasDrill) die("Cannot move through wall without a drill")
                         else if (nested && !hasDrill) return
+                    }
+                    SUPERWALL -> {
+                        if (nested) return
+                        die("Cannot move through outer wall")
                     }
                 }
 
@@ -287,7 +291,7 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                         val (status, booster) = cells[p] ?: Cell.Wall
 
                         when (status) {
-                            Status.WALL -> g.paint = Color.BLACK
+                            Status.WALL, SUPERWALL -> g.paint = Color.BLACK
                             Status.EMPTY -> g.paint = Color.WHITE
                             Status.WRAP -> g.paint = Color.GRAY
                             else -> g.paint = Color.CYAN
