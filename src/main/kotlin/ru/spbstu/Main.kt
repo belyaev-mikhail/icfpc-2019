@@ -1,18 +1,11 @@
 package ru.spbstu
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
-import org.graphstream.algorithm.AStar
-import org.graphstream.graph.Edge
-import org.graphstream.graph.Node
-import org.graphstream.graph.implementations.SingleGraph
 import org.organicdesign.fp.collections.PersistentHashMap
-import ru.spbstu.ktuples.jackson.KTuplesModule
 import ru.spbstu.map.GameMap
 import ru.spbstu.parse.parseFile
 import java.io.File
@@ -34,7 +27,7 @@ object Main : CliktCommand() {
             val map = GameMap(data)
             println(data.name)
             println(map.toASCII())
-            if(gui) map.display(guiCellSize)
+            if (gui) map.display(guiCellSize)
         } else {
             val data = File("docs/part-1-initial").walkTopDown().filter { it.extension == "desc" }.map {
                 parseFile(it.name, it.readText())

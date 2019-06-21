@@ -9,6 +9,7 @@ import java.awt.Graphics
 import java.awt.Graphics2D
 import javax.swing.JFrame
 import javax.swing.JPanel
+import javax.swing.WindowConstants
 
 class MapException(msg: String) : Exception(msg)
 
@@ -20,10 +21,19 @@ data class Cell(val status: Status, val booster: BoosterType?) {
         WRAP -> booster?.toASCII()?.toLowerCase() ?: status.toASCII()
         WALL -> status.toASCII()
     }
+
+    companion object {
+        val Empty = Cell(EMPTY)
+        val Wrap = Cell(WRAP)
+        val Wall = Cell(WALL)
+    }
 }
 
 enum class BoosterType(val timer: Int, val ascii: String) {
-    MANIPULATOR_EXTENSION(0, "B"), FAST_WHEELS(50, "F"), DRILL(30, "L"), MYSTERY(0, "X");
+    MANIPULATOR_EXTENSION(0, "B"),
+    FAST_WHEELS(50, "F"),
+    DRILL(30, "L"),
+    MYSTERY(0, "X");
 
     fun toASCII(): String = ascii
 
@@ -78,9 +88,9 @@ data class GameMap(
                 val p = Point(x, y)
 
                 if (mapPath.contains(p)) {
-                    cells[p] = Cell(EMPTY)
+                    cells[p] = Cell.Empty
                 } else {
-                    cells[p] = Cell(WALL)
+                    cells[p] = Cell.Wall
                 }
             }
         }
@@ -95,18 +105,19 @@ data class GameMap(
                     val p = Point(x, y)
 
                     if (obsPath.contains(p)) {
-                        cells[p] = Cell(WALL)
+                        cells[p] = Cell.Wall
                     }
                 }
             }
         }
 
         for ((coords, status) in boosters) {
+            // TODO: sanity check?
             cells[coords] = Cell(EMPTY, status)
         }
     }
 
-    operator fun get(p: Point): Cell = cells[p] ?: Cell(WALL)
+    operator fun get(p: Point): Cell = cells[p] ?: Cell.Wall
 
     operator fun set(p: Point, c: Cell) {
         cells[p] = c
@@ -141,11 +152,11 @@ data class GameMap(
 
                 g.background = Color.BLACK
 
-                for (y in (-1)..(maxY + 1)) {
-                    for (x in (-1)..(maxX + 1)) {
+                for (y in (-1 + minY)..(maxY + 1)) {
+                    for (x in (-1 + minX)..(maxX + 1)) {
                         val p = Point(x, y)
 
-                        val (status, booster) = cells[p] ?: Cell(WALL)
+                        val (status, booster) = cells[p] ?: Cell.Wall
 
                         when (status) {
                             Status.WALL -> g.paint = Color.BLACK
@@ -183,5 +194,7 @@ data class GameMap(
         frame.add(toPanel(cellSize))
         frame.pack()
         frame.isVisible = true
+
+        // frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
     }
 }

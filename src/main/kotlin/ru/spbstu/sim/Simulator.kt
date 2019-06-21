@@ -6,57 +6,57 @@ import ru.spbstu.map.Status.*
 import ru.spbstu.util.dec
 import ru.spbstu.util.inc
 
-interface Command
+sealed class Command
 
-interface MoveCommand : Command {
-    val dir: Point
+sealed class MoveCommand : Command() {
+    abstract val dir: Point
 }
 
-object MOVE_UP : MoveCommand {
+object MOVE_UP : MoveCommand() {
     override val dir: Point = Point(0, 1)
 
     override fun toString(): String = "W"
 }
 
-object MOVE_DOWN : MoveCommand {
+object MOVE_DOWN : MoveCommand() {
     override val dir: Point = Point(0, -1)
 
     override fun toString(): String = "S"
 }
 
-object MOVE_LEFT : MoveCommand {
+object MOVE_LEFT : MoveCommand() {
     override val dir: Point = Point(-1, 0)
 
     override fun toString(): String = "A"
 }
 
-object MOVE_RIGHT : MoveCommand {
+object MOVE_RIGHT : MoveCommand() {
     override val dir: Point = Point(1, 0)
 
     override fun toString(): String = "D"
 }
 
-object NOOP : Command {
+object NOOP : Command() {
     override fun toString(): String = "Z"
 }
 
-object TURN_CW : Command {
+object TURN_CW : Command() {
     override fun toString(): String = "E"
 }
 
-object TURN_CCW : Command {
+object TURN_CCW : Command() {
     override fun toString(): String = "Q"
 }
 
-object USE_FAST_WHEELS : Command {
+object USE_FAST_WHEELS : Command() {
     override fun toString(): String = "F"
 }
 
-object USE_DRILL : Command {
+object USE_DRILL : Command() {
     override fun toString(): String = "L"
 }
 
-data class ATTACH_MANUPULATOR(val x: Int, val y: Int) : Command {
+data class ATTACH_MANUPULATOR(val x: Int, val y: Int) : Command() {
     override fun toString(): String = "B($x,$y)"
 }
 
@@ -139,7 +139,7 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
 
         for (mp in currentRobot.manipulatorPos) {
             // TODO: handle visibility
-            val (status, booster) = gameMap[mp]
+            val (status, _) = gameMap[mp]
 
             if (status != WALL) {
                 gameMap[mp] = gameMap[mp].copy(status = WRAP)
