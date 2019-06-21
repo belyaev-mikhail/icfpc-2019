@@ -66,6 +66,14 @@ data class ATTACH_MANUPULATOR(val x: Int, val y: Int) : Command() {
     override fun toString(): String = "B($x,$y)"
 }
 
+object RESET : Command() {
+    override fun toString(): String = "R"
+}
+
+data class SHIFT_TO(val x: Int, val y: Int) : Command() {
+    override fun toString(): String = "T($x,$y)"
+}
+
 enum class Orientation(val dx: Int, val dy: Int) {
     UP(0, 1), DOWN(0, -1), LEFT(-1, 0), RIGHT(1, 0);
 
@@ -157,6 +165,8 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
 
     var currentRobot: Robot = initialRobot
     var gameMap: GameMap = initialGameMap
+
+    var teleports: Set<Point> = setOf()
 
     fun die(msg: String): Nothing = throw SimulatorException(msg, currentRobot, gameMap)
 
@@ -260,6 +270,26 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                 manupulators.add(Point(cmd.x, cmd.y))
 
                 currentRobot = currentRobot.copy(boosters = boosters, manipulators = manupulators)
+            }
+
+            is RESET -> {
+                val boosters = currentRobot.boosters.toMutableMap()
+                if (TELEPORT !in boosters) die("Cannot use teleport")
+                boosters.dec(TELEPORT)
+
+                if (gameMap[currentRobot.pos].booster == MYSTERY || currentRobot.pos in teleports)
+                    die("Cannot reset teleport here")
+
+                teleports += currentRobot.pos
+            }
+
+            is SHIFT_TO -> {
+                val newPos = Point(cmd.x, cmd.y)
+
+                if (newPos !in teleports)
+                    die("Cannot shift with $cmd")
+
+                currentRobot = currentRobot.copy(pos = newPos)
             }
         }
 
