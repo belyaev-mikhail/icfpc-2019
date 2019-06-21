@@ -1,26 +1,24 @@
 package ru.spbstu
 
-import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.prompt
 import com.github.ajalt.clikt.parameters.types.int
 import org.graphstream.algorithm.AStar
 import org.graphstream.graph.Edge
 import org.graphstream.graph.Node
 import org.graphstream.graph.implementations.SingleGraph
-import ru.spbstu.ktuples.Tuple3
 import ru.spbstu.ktuples.jackson.KTuplesModule
+import java.io.File
 
 
 val om = ObjectMapper().registerModule(KotlinModule()).registerModule(KTuplesModule())
 
 object Main : CliktCommand() {
-    val count: Int by option(help="Number of greetings").int().default(1)
-    val name: String? by option(help="The person to greet")
+    val count: Int by option(help = "Number of greetings").int().default(1)
+    val name: String? by option(help = "The person to greet")
 
     override fun run() {
         for (i in 1..count) {
@@ -42,7 +40,7 @@ object Main : CliktCommand() {
         astar.setCosts(AStar.DistanceCosts())
         astar.compute()
 
-        for(node in astar.shortestPath.nodePath) {
+        for (node in astar.shortestPath.nodePath) {
             node.setAttribute("ui.color", "red")
         }
 
@@ -53,4 +51,9 @@ object Main : CliktCommand() {
     }
 }
 
-fun main(args: Array<String>) = Main.main(args)
+fun main(args: Array<String>) {
+    val data = File("docs/part-1-initial").walkTopDown().filter { it.extension == "desc" }.map {
+        parseFile(it.readText())
+    }.toList()
+    println(data)
+}
