@@ -68,7 +68,7 @@ fun astarWalk(sim: Simulator, target: Point): List<Command> {
                 (robot.manipulatorPos.map { it.manhattanDistance(target) }.min() ?: Int.MAX_VALUE).toDouble()
             },
             goal = { (robot, _) ->
-                robot.manipulatorPos.contains(target)
+                robot.manipulatorPos.contains(target) && sim.gameMap.isVisible(robot.pos, target)
             },
             neighbours = { (me, _) ->
                 val commands = listOf(TURN_CW, TURN_CCW, MOVE_UP, MOVE_RIGHT, MOVE_LEFT, MOVE_DOWN)

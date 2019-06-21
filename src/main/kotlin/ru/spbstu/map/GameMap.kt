@@ -3,6 +3,7 @@ package ru.spbstu.map
 import ru.spbstu.ktuples.Tuple2
 import ru.spbstu.map.Status.*
 import ru.spbstu.parse.Task
+import ru.spbstu.sim.Robot
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.Graphics
@@ -194,64 +195,4 @@ data class GameMap(
         return res.toString()
     }
 
-    fun toPanel(cellSize: Int): JPanel {
-        return object : JPanel() {
-            init {
-                this.preferredSize = Dimension((maxX - minX + 2) * cellSize, (maxY - minY + 2) * cellSize)
-                this.minimumSize = this.preferredSize
-                this.maximumSize = this.preferredSize
-            }
-
-            override fun paint(g: Graphics?) {
-                super.paint(g)
-                g as Graphics2D
-
-                g.background = Color.BLACK
-
-                for (y in (-1 + minY)..(maxY + 1)) {
-                    for (x in (-1 + minX)..(maxX + 1)) {
-                        val p = Point(x, y)
-
-                        val (status, booster) = cells[p] ?: Cell.Wall
-
-                        when (status) {
-                            Status.WALL -> g.paint = Color.BLACK
-                            Status.EMPTY -> g.paint = Color.WHITE
-                            Status.WRAP -> g.paint = Color.GRAY
-                            else -> g.paint = Color.CYAN
-                        }
-
-                        when (booster) {
-                            BoosterType.MANIPULATOR_EXTENSION -> g.paint = Color.YELLOW.darker()
-                            BoosterType.FAST_WHEELS -> g.paint = Color(0xB5651D).darker()
-                            BoosterType.DRILL -> g.paint = Color.GREEN
-                            BoosterType.MYSTERY -> g.paint = Color.BLUE
-                        }
-
-                        // TODO: handle wrap + booster
-
-                        g.fillRect((x + 1) * cellSize, (maxY - y) * cellSize, cellSize, cellSize)
-
-                        when (cells[p]) {
-                            // Status.EMPTY, null, Status.WALL -> {}
-                            else -> {
-                                g.paint = Color.DARK_GRAY
-                                g.drawRect((x + 1) * cellSize, (maxY - y) * cellSize, cellSize, cellSize)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    fun display(cellSize: Int): JFrame {
-        val frame = JFrame()
-        frame.add(toPanel(cellSize))
-        frame.pack()
-        frame.isVisible = true
-        return frame
-
-        // frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
-    }
 }

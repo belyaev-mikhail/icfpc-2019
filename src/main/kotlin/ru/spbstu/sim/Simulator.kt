@@ -2,9 +2,14 @@ package ru.spbstu.sim
 
 import ru.spbstu.map.*
 import ru.spbstu.map.BoosterType.*
+import ru.spbstu.map.Point
 import ru.spbstu.map.Status.*
 import ru.spbstu.util.dec
 import ru.spbstu.util.inc
+import java.awt.*
+import java.awt.Color
+import javax.swing.JFrame
+import javax.swing.JPanel
 
 sealed class Command
 
@@ -253,5 +258,74 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
         }
 
         if (!nested) currentRobot = currentRobot.tick()
+    }
+
+    fun toPanel(cellSize: Int): JPanel = with(gameMap) {
+        return object : JPanel() {
+            init {
+                this.preferredSize = Dimension((maxX - minX + 2) * cellSize, (maxY - minY + 2) * cellSize)
+                this.minimumSize = this.preferredSize
+                this.maximumSize = this.preferredSize
+            }
+
+            override fun paint(g: Graphics?) {
+                super.paint(g)
+                g as Graphics2D
+
+                g.background = Color.BLACK
+
+                fun drawPoint(point: Point) = with(point) {
+                    g.fillRect((v0 + 1) * cellSize, (maxY - v1) * cellSize, cellSize, cellSize)
+                    g.paint = Color.DARK_GRAY
+                    g.drawRect((v0 + 1) * cellSize, (maxY - v1) * cellSize, cellSize, cellSize)
+                }
+
+                for (y in (-1 + minY)..(maxY + 1)) {
+                    for (x in (-1 + minX)..(maxX + 1)) {
+                        val p = Point(x, y)
+
+                        val (status, booster) = cells[p] ?: Cell.Wall
+
+                        when (status) {
+                            Status.WALL -> g.paint = Color.BLACK
+                            Status.EMPTY -> g.paint = Color.WHITE
+                            Status.WRAP -> g.paint = Color.GRAY
+                            else -> g.paint = Color.CYAN
+                        }
+
+                        when (booster) {
+                            BoosterType.MANIPULATOR_EXTENSION -> g.paint = Color.YELLOW.darker()
+                            BoosterType.FAST_WHEELS -> g.paint = Color(0xB5651D).darker()
+                            BoosterType.DRILL -> g.paint = Color.GREEN
+                            BoosterType.MYSTERY -> g.paint = Color.BLUE
+                        }
+
+                        // TODO: handle wrap + booster
+
+                        drawPoint(p)
+                    }
+                }
+
+                for(manip in currentRobot.manipulatorPos) {
+                    g.paint = Color.YELLOW
+                    drawPoint(manip)
+                }
+
+                g.paint = Color.RED
+                drawPoint(currentRobot.pos)
+
+
+            }
+        }
+    }
+
+    fun display(cellSize: Int): JFrame {
+        val frame = JFrame()
+        frame.add(toPanel(cellSize))
+        frame.pack()
+        frame.isVisible = true
+        return frame
+
+        // frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
     }
 }

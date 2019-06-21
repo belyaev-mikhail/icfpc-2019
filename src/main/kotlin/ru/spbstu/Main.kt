@@ -47,7 +47,7 @@ object Main : CliktCommand() {
             }
 
             if (gui) {
-                val frame = map.display(guiCellSize)
+                val frame = sim.display(guiCellSize)
                 for(command in path) {
                     sim.apply(command)
                     Thread.sleep((1000.0 / speed).toLong())
