@@ -291,7 +291,7 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                         val (status, booster) = cells[p] ?: Cell.Wall
 
                         when (status) {
-                            Status.WALL -> g.paint = Color.BLACK
+                            Status.WALL, SUPERWALL -> g.paint = Color.BLACK
                             Status.EMPTY -> g.paint = Color.WHITE
                             Status.WRAP -> g.paint = Color.GRAY
                             else -> g.paint = Color.CYAN
