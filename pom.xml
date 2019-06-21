@@ -52,6 +52,16 @@
         </dependency>
         <dependency>
             <groupId>ru.spbstu</groupId>
+            <artifactId>kotlin-wheels</artifactId>
+            <version>0.0.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.organicdesign</groupId>
+            <artifactId>Paguro</artifactId>
+            <version>3.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>ru.spbstu</groupId>
             <artifactId>jackson-module-ktuples</artifactId>
             <version>0.0.0.3</version>
         </dependency>
