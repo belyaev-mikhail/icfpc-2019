@@ -12,8 +12,9 @@ import ru.spbstu.player.astarBot
 import ru.spbstu.player.smarterAstarBot
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Robot
+import ru.spbstu.sim.SimFrame
 import ru.spbstu.sim.Simulator
-import ru.spbstu.wheels.memoize
+import ru.spbstu.wheels.*
 import java.io.File
 
 object Main : CliktCommand() {
@@ -52,13 +53,15 @@ object Main : CliktCommand() {
         }
     }
 
-    suspend fun handleMapSingle(sim: Simulator, bot: (Simulator) -> Sequence<Command>): Sequence<Command> {
-        val path = bot(sim).memoize()
+    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>) -> Sequence<Command>): Sequence<Command> {
+        val mutSim = ref(isim)
+        var sim by mutSim
+        val path = bot(mutSim).memoize()
 
         if (gui) {
-            val frame = sim.display(guiCellSize)
+            val frame = SimFrame(guiCellSize) { mutSim.value }
             for (command in path) {
-                sim.apply(command)
+                sim = sim.apply(command)
                 delay((1000.0 / speed).toLong())
                 frame.repaint()
             }
@@ -66,7 +69,7 @@ object Main : CliktCommand() {
             frame.dispose()
         } else {
             for (command in path) {
-                sim.apply(command)
+                sim = sim.apply(command)
             }
         }
 

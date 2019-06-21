@@ -5,11 +5,14 @@ import ru.spbstu.map.Status
 import ru.spbstu.map.euclidDistance
 import ru.spbstu.sim.ATTACH_MANUPULATOR
 import ru.spbstu.sim.Simulator
+import ru.spbstu.wheels.MutableRef
+import ru.spbstu.wheels.getValue
 import java.lang.Math.abs
 
-fun smarterAstarBot(sim: Simulator) =
+fun smarterAstarBot(simref: MutableRef<Simulator>) =
         sequence {
             while (true) {
+                val sim by simref
                 val target = sim
                         .gameMap
                         .cells

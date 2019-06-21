@@ -4,10 +4,13 @@ import ru.spbstu.map.Status
 import ru.spbstu.map.euclidDistance
 import ru.spbstu.map.neighbours
 import ru.spbstu.sim.Simulator
+import ru.spbstu.wheels.MutableRef
+import ru.spbstu.wheels.getValue
 
-fun astarBot(sim: Simulator) =
+fun astarBot(simref: MutableRef<Simulator>) =
     sequence {
         while(true) {
+            val sim by simref
             val target = sim
                     .gameMap
                     .cells
