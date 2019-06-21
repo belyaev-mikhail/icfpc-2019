@@ -20,7 +20,7 @@ fun parseObstacles(obstacles: String): List<Obstacle> {
 
 fun parseBoosters(boosters: String): List<Booster> {
     if (boosters.trim().isEmpty()) return emptyList()
-    return boosters.split(';').map { it.trim() }.map { Booster(parsePoint(it.drop(1)), Status.fromBoosterType("${it[0]}")) }
+    return boosters.split(';').map { it.trim() }.map { Booster(parsePoint(it.drop(1)), BoosterType.from("${it[0]}")) }
 }
 
 fun parseFile(name: String, data: String): Task {

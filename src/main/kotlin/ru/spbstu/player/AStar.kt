@@ -2,6 +2,7 @@ package ru.spbstu.player
 
 import ru.spbstu.ktuples.Tuple
 import ru.spbstu.ktuples.Tuple2
+import ru.spbstu.map.Cell
 import ru.spbstu.map.Point
 import ru.spbstu.map.Status
 import ru.spbstu.map.manhattanDistance
@@ -38,9 +39,6 @@ inline fun <T> aStarSearch(from: T,
     while (!open.isEmpty()) {
         val (peek, len) = open.remove()
 
-        println("Peeking element $peek with score ${heur(peek)} and len $len")
-        println("peek in closed: ${peek in closed}")
-
         if (goal(peek)) return reconstructPath(peek, paths)
 
         for (e in neighbours(peek)) if (e !in closed) {
@@ -62,22 +60,22 @@ data class RobotAndCommand(val v0: Robot, val v1: Command) {
 fun astarWalk(sim: Simulator, target: Point): List<Command> {
     val robot = sim.currentRobot
 
-    check(sim.gameMap[target] != Status.WALL)
+    check(sim.gameMap[target] != Cell.Wall)
 
     return aStarSearch(
             RobotAndCommand(robot, USE_DRILL),
             heur = { (robot, _) ->
-                (robot.getWrap().map { it.manhattanDistance(target) }.min() ?: Int.MAX_VALUE).toDouble()
+                (robot.manipulatorPos.map { it.manhattanDistance(target) }.min() ?: Int.MAX_VALUE).toDouble()
             },
             goal = { (robot, _) ->
-                robot.getWrap().contains(target)
+                robot.manipulatorPos.contains(target)
             },
             neighbours = { (me, _) ->
                 val commands = listOf(TURN_CW, TURN_CCW, MOVE_UP, MOVE_RIGHT, MOVE_LEFT, MOVE_DOWN)
                 commands.map { RobotAndCommand(me.doCommand(it), it) }
                         .asSequence()
-                        .filter { sim.gameMap[it.v0.pos] != Status.WALL }
+                        .filter { sim.gameMap[it.v0.pos] != Cell.Wall }
             }
-    ).orEmpty().map { it.v1 }
+    )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
 }
 
