@@ -1,13 +1,9 @@
 package ru.spbstu.player
 
-import ru.spbstu.ktuples.Tuple
-import ru.spbstu.ktuples.Tuple2
-import ru.spbstu.map.Cell
 import ru.spbstu.map.Point
-import ru.spbstu.map.Status
 import ru.spbstu.map.manhattanDistance
 import ru.spbstu.sim.*
-import ru.spbstu.wheels.*
+import ru.spbstu.wheels.getOption
 import java.util.*
 
 @PublishedApi
@@ -54,18 +50,20 @@ data class RobotAndCommand(val v0: Robot, val v1: Command) {
     override fun equals(other: Any?) = other is RobotAndCommand
             && v0.pos == other.v0.pos
             && v0.orientation == other.v0.orientation
+
     override fun hashCode(): Int = Objects.hash(v0.pos, v0.orientation)
 }
 
 fun astarWalk(sim: Simulator, target: Point): List<Command> {
     val robot = sim.currentRobot
 
-    check(sim.gameMap[target] != Cell.Wall)
+    check(!sim.gameMap[target].status.isWall)
 
     return aStarSearch(
             RobotAndCommand(robot, USE_DRILL),
             heur = { (robot, _) ->
-                (robot.manipulatorPos.map { it.manhattanDistance(target) }.min() ?: Int.MAX_VALUE).toDouble()
+                (robot.manipulatorPos.map { it.manhattanDistance(target) }.min()
+                        ?: Int.MAX_VALUE).toDouble()
             },
             goal = { (robot, _) ->
                 robot.manipulatorPos.contains(target) && sim.gameMap.isVisible(robot.pos, target)
@@ -74,8 +72,7 @@ fun astarWalk(sim: Simulator, target: Point): List<Command> {
                 val commands = listOf(TURN_CW, TURN_CCW, MOVE_UP, MOVE_RIGHT, MOVE_LEFT, MOVE_DOWN)
                 commands.map { RobotAndCommand(me.doCommand(it), it) }
                         .asSequence()
-                        .filter { sim.gameMap[it.v0.pos] != Cell.Wall }
+                        .filter { !sim.gameMap[it.v0.pos].status.isWall }
             }
     )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
 }
-

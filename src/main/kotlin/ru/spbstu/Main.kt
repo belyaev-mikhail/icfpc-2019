@@ -11,6 +11,7 @@ import ru.spbstu.map.*
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.astarBot
 import ru.spbstu.player.astarWalk
+import ru.spbstu.player.smarterAstarBot
 import ru.spbstu.sim.Robot
 import ru.spbstu.sim.Simulator
 import ru.spbstu.wheels.memoize

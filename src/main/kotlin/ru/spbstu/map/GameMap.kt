@@ -1,5 +1,6 @@
 package ru.spbstu.map
 
+import ru.spbstu.ktuples.Tuple2
 import ru.spbstu.map.Status.*
 import ru.spbstu.parse.Task
 import ru.spbstu.sim.Robot
@@ -60,9 +61,7 @@ enum class Status(val ascii: String) {
     }
 }
 
-//typealias Point = Tuple2<Int, Int>
-data class Point(val v0: Int, val v1: Int)
-
+typealias Point = Tuple2<Int, Int>
 
 typealias Shape = List<Point>
 
