@@ -1,16 +1,14 @@
 package ru.spbstu.sim
 
-import ru.spbstu.map.GameMap
-import ru.spbstu.map.Point
+import ru.spbstu.map.*
+import ru.spbstu.map.BoosterType.*
 import ru.spbstu.map.Status.*
-import ru.spbstu.map.moveTo
-import ru.spbstu.sim.Booster.DRILL
-import ru.spbstu.sim.Booster.FAST_WHEELS
+import ru.spbstu.util.dec
 import ru.spbstu.util.inc
 
 interface Command
 
-interface MoveCommand {
+interface MoveCommand : Command {
     val dir: Point
 }
 
@@ -62,10 +60,6 @@ data class ATTACH_MANUPULATOR(val x: Int, val y: Int) : Command {
     override fun toString(): String = "B($x,$y)"
 }
 
-enum class Booster(val timer: Int) {
-    MANIPULATOR_EXTENSION(0), FAST_WHEELS(50), DRILL(30), MYSTERY(0)
-}
-
 enum class Orientation(val dx: Int, val dy: Int) {
     UP(0, 1), DOWN(0, -1), LEFT(-1, 0), RIGHT(1, 0);
 
@@ -93,8 +87,8 @@ data class Robot(val pos: Point,
                  val manipulators: List<Point> = listOf(
                          Point(1, 1), Point(1, 0), Point(1, -1)
                  ),
-                 val boosters: Map<Booster, Int> = mutableMapOf(),
-                 val activeBoosters: Map<Booster, Int> = mutableMapOf()) {
+                 val boosters: Map<BoosterType, Int> = mutableMapOf(),
+                 val activeBoosters: Map<BoosterType, Int> = mutableMapOf()) {
 
     fun rotateCW(): Robot {
         val newOrientation = orientation.rotateCW
@@ -112,17 +106,16 @@ data class Robot(val pos: Point,
         return this.copy(orientation = newOrientation, manipulators = newManipulators)
     }
 
-    fun getWrap(): List<Point> {
-        val res = mutableListOf<Point>()
+    val manipulatorPos: List<Point>
+        get() {
+            val res = mutableListOf<Point>()
 
-        res += pos
+            for ((dx, dy) in manipulators) {
+                res += Point(pos.v0 + dx, pos.v1 + dy)
+            }
 
-        for ((dx, dy) in manipulators) {
-            res += Point(pos.v0 + dx, pos.v1 + dy)
+            return res
         }
-
-        return res
-    }
 
     fun tick(): Robot {
         val newActiveBoosters = activeBoosters.mapValues { (_, remaining) -> remaining - 1 }
@@ -141,36 +134,99 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
 
     fun die(msg: String): Nothing = throw SimulatorException(msg, currentRobot, gameMap)
 
-    fun apply(cmd: Command) {
-        with(currentRobot) {
-            when (cmd) {
-                is MoveCommand -> {
-                    val newPos = pos.moveTo(cmd.dir)
+    fun repaint() {
+        gameMap[currentRobot.pos] = Cell(WRAP)
 
-                    val newCell = gameMap[newPos]
+        for (mp in currentRobot.manipulatorPos) {
+            // TODO: handle visibility
+            val (status, booster) = gameMap[mp]
 
-                    when (newCell) {
-                        EMPTY, WRAP -> {
-                        }
-                        WALL -> {
-                            if (DRILL !in activeBoosters) die("Cannot move through wall without a drill")
-                        }
-                        BOOSTER_F -> {
-                            val newBoosters = boosters.toMutableMap()
-                            newBoosters.inc(FAST_WHEELS)
-                            currentRobot = currentRobot.copy(boosters = newBoosters)
-                        }
-                        BOOSTER_L -> {
-                            val newBoosters = boosters.toMutableMap()
-                            newBoosters.inc(FAST_WHEELS)
-                            currentRobot = currentRobot.copy(boosters = newBoosters)
-                        }
-                        BOOSTER_X -> TODO()
-                    }
-
-                    currentRobot = currentRobot.copy(pos = newPos)
-                }
+            if (status != WALL) {
+                gameMap[mp] = gameMap[mp].copy(status = WRAP)
             }
         }
+    }
+
+    init {
+        repaint()
+    }
+
+    fun apply(cmd: Command) {
+        when (cmd) {
+            is MoveCommand -> {
+                val newPos = currentRobot.pos.moveTo(cmd.dir)
+
+                val (newCell, newBooster) = gameMap[newPos]
+
+                when (newCell) {
+                    EMPTY, WRAP -> {
+                    }
+                    WALL -> {
+                        if (DRILL !in currentRobot.activeBoosters) die("Cannot move through wall without a drill")
+                    }
+                }
+
+                when (newBooster) {
+                    null -> {
+                        // Do nothing
+                    }
+                    else -> {
+                        val newBoosters = currentRobot.boosters.toMutableMap()
+                        newBoosters.inc(newBooster)
+                        currentRobot = currentRobot.copy(boosters = newBoosters)
+                    }
+                }
+
+                currentRobot = currentRobot.copy(pos = newPos)
+            }
+
+            is NOOP -> {
+            }
+
+            is TURN_CW -> {
+                currentRobot = currentRobot.rotateCW()
+            }
+
+            is TURN_CCW -> {
+                currentRobot = currentRobot.rotateCCW()
+            }
+
+            is USE_FAST_WHEELS -> {
+                val boosters = currentRobot.boosters.toMutableMap()
+                if (FAST_WHEELS !in boosters) die("Cannot use fast wheels")
+                boosters.dec(FAST_WHEELS)
+
+                val activeBoosters = currentRobot.activeBoosters.toMutableMap()
+                activeBoosters[FAST_WHEELS] = FAST_WHEELS.timer + 1 // will tick down immediately
+
+                currentRobot = currentRobot.copy(boosters = boosters, activeBoosters = activeBoosters)
+            }
+
+            is USE_DRILL -> {
+                val boosters = currentRobot.boosters.toMutableMap()
+                if (DRILL !in boosters) die("Cannot use drill")
+                boosters.dec(DRILL)
+
+                val activeBoosters = currentRobot.activeBoosters.toMutableMap()
+                activeBoosters[DRILL] = DRILL.timer + 1 // will tick down immediately
+
+                currentRobot = currentRobot.copy(boosters = boosters, activeBoosters = activeBoosters)
+            }
+
+            is ATTACH_MANUPULATOR -> {
+                val boosters = currentRobot.boosters.toMutableMap()
+                if (MANIPULATOR_EXTENSION !in boosters) die("Cannot use manipulator extension")
+                boosters.dec(MANIPULATOR_EXTENSION)
+
+                val manupulators = currentRobot.manipulators.toMutableList()
+                manupulators.add(Point(cmd.x, cmd.y))
+
+                currentRobot = currentRobot.copy(boosters = boosters, manipulators = manupulators)
+            }
+        }
+
+        repaint()
+
+        currentRobot = currentRobot.tick()
     }
 }

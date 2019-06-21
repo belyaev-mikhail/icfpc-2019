@@ -1,6 +1,7 @@
 package ru.spbstu.map
 
 import ru.spbstu.ktuples.Tuple2
+import ru.spbstu.map.Status.*
 import ru.spbstu.parse.Task
 import java.awt.Color
 import java.awt.Dimension
@@ -9,18 +10,33 @@ import java.awt.Graphics2D
 import javax.swing.JFrame
 import javax.swing.JPanel
 
-enum class Status(val ascii: String) {
-    EMPTY("."), WRAP("+"), WALL("#"), BOOSTER_B("B"), BOOSTER_F("F"), BOOSTER_L("L"), BOOSTER_X("X");
+class MapException(msg: String) : Exception(msg)
+
+data class Cell(val status: Status, val booster: BoosterType?) {
+    constructor(status: Status) : this(status, null)
+
+    fun toASCII(): String = when (status) {
+        EMPTY -> booster?.toASCII() ?: status.toASCII()
+        WRAP -> booster?.toASCII()?.toLowerCase() ?: status.toASCII()
+        WALL -> status.toASCII()
+    }
+}
+
+enum class BoosterType(val timer: Int, val ascii: String) {
+    MANIPULATOR_EXTENSION(0, "B"), FAST_WHEELS(50, "F"), DRILL(30, "L"), MYSTERY(0, "X");
+
+    fun toASCII(): String = ascii
 
     companion object {
-        fun fromBoosterType(type: String) = when (type) {
-            "B" -> BOOSTER_B
-            "F" -> BOOSTER_F
-            "L" -> BOOSTER_L
-            "X" -> BOOSTER_X
-            else -> TODO()
-        }
+        val nameMap = values().map { it.ascii to it }.toMap()
+
+        fun from(s: String) = nameMap[s]
+                ?: throw MapException("Wrong booster type: $s")
     }
+}
+
+enum class Status(val ascii: String) {
+    EMPTY("."), WRAP("+"), WALL("#");
 
     fun toASCII(): String = ascii
 }
@@ -29,7 +45,7 @@ typealias Point = Tuple2<Int, Int>
 
 typealias Shape = List<Point>
 
-data class Booster(val coords: Point, val type: Status)
+data class Booster(val coords: Point, val type: BoosterType)
 
 typealias Obstacle = Shape
 
@@ -40,7 +56,7 @@ data class GameMap(
 
     constructor(task: Task) : this(task.map, task.obstacles, task.boosters)
 
-    val cells = mutableMapOf<Point, Status>()
+    val cells = mutableMapOf<Point, Cell>()
 
     val minX: Int
     val maxX: Int
@@ -62,9 +78,9 @@ data class GameMap(
                 val p = Point(x, y)
 
                 if (mapPath.contains(p)) {
-                    cells[p] = Status.EMPTY
+                    cells[p] = Cell(EMPTY)
                 } else {
-                    cells[p] = Status.WALL
+                    cells[p] = Cell(WALL)
                 }
             }
         }
@@ -79,21 +95,21 @@ data class GameMap(
                     val p = Point(x, y)
 
                     if (obsPath.contains(p)) {
-                        cells[p] = Status.WALL
+                        cells[p] = Cell(WALL)
                     }
                 }
             }
         }
 
         for ((coords, status) in boosters) {
-            cells[coords] = status
+            cells[coords] = Cell(EMPTY, status)
         }
     }
 
-    operator fun get(p: Point): Status = cells[p] ?: Status.WALL
+    operator fun get(p: Point): Cell = cells[p] ?: Cell(WALL)
 
-    operator fun set(p: Point, s: Status) {
-        cells[p] = s
+    operator fun set(p: Point, c: Cell) {
+        cells[p] = c
     }
 
     fun toASCII(): String {
@@ -112,7 +128,7 @@ data class GameMap(
     }
 
     fun toPanel(cellSize: Int): JPanel {
-        return object: JPanel() {
+        return object : JPanel() {
             init {
                 this.preferredSize = Dimension((maxX - minX + 2) * cellSize, (maxY - minY + 2) * cellSize)
                 this.minimumSize = this.preferredSize
@@ -129,19 +145,28 @@ data class GameMap(
                     for (x in (-1)..(maxX + 1)) {
                         val p = Point(x, y)
 
-                        when(cells[p]) {
-                            null, Status.WALL -> g.paint = Color.BLACK
+                        val (status, booster) = cells[p] ?: Cell(WALL)
+
+                        when (status) {
+                            Status.WALL -> g.paint = Color.BLACK
                             Status.EMPTY -> g.paint = Color.WHITE
                             Status.WRAP -> g.paint = Color.GRAY
-                            Status.BOOSTER_B -> g.paint = Color.YELLOW.darker()
-                            Status.BOOSTER_F -> g.paint = Color(0xB5651D).darker()
-                            Status.BOOSTER_L -> g.paint = Color.GREEN
-                            Status.BOOSTER_X -> g.paint = Color.BLUE
                             else -> g.paint = Color.CYAN
                         }
+
+                        when (booster) {
+                            BoosterType.MANIPULATOR_EXTENSION -> g.paint = Color.YELLOW.darker()
+                            BoosterType.FAST_WHEELS -> g.paint = Color(0xB5651D).darker()
+                            BoosterType.DRILL -> g.paint = Color.GREEN
+                            BoosterType.MYSTERY -> g.paint = Color.BLUE
+                        }
+
+                        // TODO: handle wrap + booster
+
                         g.fillRect((x + 1) * cellSize, (maxY - y) * cellSize, cellSize, cellSize)
-                        when(cells[p]) {
-                            //Status.EMPTY, null, Status.WALL -> {}
+
+                        when (cells[p]) {
+                            // Status.EMPTY, null, Status.WALL -> {}
                             else -> {
                                 g.paint = Color.DARK_GRAY
                                 g.drawRect((x + 1) * cellSize, (maxY - y) * cellSize, cellSize, cellSize)
