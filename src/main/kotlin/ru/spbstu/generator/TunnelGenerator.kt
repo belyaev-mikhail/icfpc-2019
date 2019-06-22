@@ -1,94 +1,11 @@
 package ru.spbstu.generator
 
-import ru.spbstu.generator.TunnelGenerator.FragmentType.*
 import ru.spbstu.map.*
 import ru.spbstu.player.aStarSearch
 
 
 class  TunnelGenerator(private val parameters: Parameters) {
     enum class Cell { WALL, PATH }
-
-    enum class FragmentType {
-        INNER_CORNER_UL, INNER_CORNER_UR, INNER_CORNER_DL, INNER_CORNER_DR,
-        OUTER_CORNER_UL, OUTER_CORNER_UR, OUTER_CORNER_DL, OUTER_CORNER_DR,
-        LONG_CORNER_000000011, LONG_CORNER_000000110, LONG_CORNER_011000000, LONG_CORNER_110000000,
-        LONG_CORNER_001001000, LONG_CORNER_000001001, LONG_CORNER_100100000, LONG_CORNER_000100100,
-        PLACE_U, PLACE_L, PLACE_D, PLACE_R
-    }
-
-    private val CORNERS = setOf(INNER_CORNER_UL, INNER_CORNER_UR, INNER_CORNER_DL, INNER_CORNER_DR,
-            OUTER_CORNER_UL, OUTER_CORNER_UR, OUTER_CORNER_DL, OUTER_CORNER_DR)
-
-    private fun getFragmentTypes(point: Point): Set<FragmentType> {
-        return sequence {
-            if (isWall(point) && !isWall(point.up()) && !isWall(point.left()) && !isWall(point.up().left()))
-                yield(OUTER_CORNER_UL)
-            if (isWall(point) && !isWall(point.up()) && !isWall(point.right()) && !isWall(point.up().right()))
-                yield(OUTER_CORNER_UR)
-            if (isWall(point) && !isWall(point.down()) && !isWall(point.left()) && !isWall(point.down().left()))
-                yield(OUTER_CORNER_DL)
-            if (isWall(point) && !isWall(point.down()) && !isWall(point.right()) && !isWall(point.down().right()))
-                yield(OUTER_CORNER_DR)
-            if (isWall(point) && isWall(point.up()) && isWall(point.left()) && !isWall(point.up().left()))
-                yield(INNER_CORNER_UL)
-            if (isWall(point) && isWall(point.up()) && isWall(point.right()) && !isWall(point.up().right()))
-                yield(INNER_CORNER_UR)
-            if (isWall(point) && isWall(point.down()) && isWall(point.left()) && !isWall(point.down().left()))
-                yield(INNER_CORNER_DL)
-            if (isWall(point) && isWall(point.down()) && isWall(point.right()) && !isWall(point.down().right()))
-                yield(INNER_CORNER_DR)
-            if (isWall(point) && isWall(point.left()) && isWall(point.right()) &&
-                    !isWall(point.up()) && !isWall(point.up().left()) && !isWall(point.up().right()) &&
-                    !isWall(point.up().up()) && !isWall(point.up().up().left()) && !isWall(point.up().up().right()))
-                yield(PLACE_U)
-            if (isWall(point) && isWall(point.left()) && isWall(point.right()) &&
-                    !isWall(point.down()) && !isWall(point.down().left()) && !isWall(point.down().right()) &&
-                    !isWall(point.down().down()) && !isWall(point.down().down().left()) && !isWall(point.down().down().right()))
-                yield(PLACE_D)
-            if (isWall(point) && isWall(point.up()) && isWall(point.down()) &&
-                    !isWall(point.left()) && !isWall(point.left().up()) && !isWall(point.left().down()) &&
-                    !isWall(point.left().left()) && !isWall(point.left().left().up()) && !isWall(point.left().left().down()))
-                yield(PLACE_L)
-            if (isWall(point) && isWall(point.up()) && isWall(point.down()) &&
-                    !isWall(point.right()) && !isWall(point.right().up()) && !isWall(point.right().down()) &&
-                    !isWall(point.right().right()) && !isWall(point.right().right().up()) && !isWall(point.right().right().down()))
-                yield(PLACE_R)
-
-            if (isWall(point) && !isWall(point.left()) && isWall(point.right()) &&
-                    !isWall(point.up()) && !isWall(point.up().left()) && !isWall(point.up().right()) &&
-                    !isWall(point.up().up()) && !isWall(point.up().up().left()) && !isWall(point.up().up().right()))
-                yield(LONG_CORNER_000000011)
-            if (isWall(point) && isWall(point.left()) && !isWall(point.right()) &&
-                    !isWall(point.up()) && !isWall(point.up().left()) && !isWall(point.up().right()) &&
-                    !isWall(point.up().up()) && !isWall(point.up().up().left()) && !isWall(point.up().up().right()))
-                yield(LONG_CORNER_000000110)
-            if (isWall(point) && !isWall(point.left()) && isWall(point.right()) &&
-                    !isWall(point.down()) && !isWall(point.down().left()) && !isWall(point.down().right()) &&
-                    !isWall(point.down().down()) && !isWall(point.down().down().left()) && !isWall(point.down().down().right()))
-                yield(LONG_CORNER_011000000)
-            if (isWall(point) && isWall(point.left()) && !isWall(point.right()) &&
-                    !isWall(point.down()) && !isWall(point.down().left()) && !isWall(point.down().right()) &&
-                    !isWall(point.down().down()) && !isWall(point.down().down().left()) && !isWall(point.down().down().right()))
-                yield(LONG_CORNER_110000000)
-
-            if (isWall(point) && isWall(point.up()) && !isWall(point.down()) &&
-                    !isWall(point.left()) && !isWall(point.left().up()) && !isWall(point.left().down()) &&
-                    !isWall(point.left().left()) && !isWall(point.left().left().up()) && !isWall(point.left().down()))
-                yield(LONG_CORNER_001001000)
-            if (isWall(point) && !isWall(point.up()) && isWall(point.down()) &&
-                    !isWall(point.left()) && !isWall(point.left().up()) && !isWall(point.left().down()) &&
-                    !isWall(point.left().left()) && !isWall(point.left().left().up()) && !isWall(point.left().down()))
-                yield(LONG_CORNER_000001001)
-            if (isWall(point) && isWall(point.up()) && !isWall(point.down()) &&
-                    !isWall(point.right()) && !isWall(point.right().up()) && !isWall(point.right().down()) &&
-                    !isWall(point.right().right()) && !isWall(point.right().right().up()) && !isWall(point.right().down()))
-                yield(LONG_CORNER_100100000)
-            if (isWall(point) && !isWall(point.up()) && isWall(point.down()) &&
-                    !isWall(point.right()) && !isWall(point.right().up()) && !isWall(point.right().down()) &&
-                    !isWall(point.right().right()) && !isWall(point.right().right().up()) && !isWall(point.right().down()))
-                yield(LONG_CORNER_000100100)
-        }.toSet()
-    }
 
     private val matrix = HashMap<Point, Cell>()
 
@@ -127,11 +44,68 @@ class  TunnelGenerator(private val parameters: Parameters) {
         return true
     }
 
+    data class Pattern(val walls: Set<Point>, val paths: Set<Point>) {
+        companion object {
+            // "000 000 0x1"
+            fun parse(initial: Point, pattern: String): Pattern {
+                val lines = pattern.split(" ")
+                val length = lines.map { it.length }.max()!!
+                if (length != lines.map { it.length }.min()) throw Exception(pattern)
+                val walls = HashSet<Point>()
+                val paths = HashSet<Point>()
+                var relativeInitial: Point? = null
+                for (v0 in lines.indices) {
+                    for (v1 in 0 until length) {
+                        val ch = lines[v0][v1]
+                        val point = Point(v0, v1)
+                        when (ch) {
+                            '0' -> paths.add(point)
+                            '1' -> walls.add(point)
+                            'o' -> paths.add(point)
+                            'x' -> walls.add(point)
+                            '-' -> { //Skip
+                            }
+                            else -> throw Exception(pattern)
+                        }
+                        if (ch == 'o' || ch == 'x') {
+                            relativeInitial = point
+                        }
+                    }
+                }
+                if (relativeInitial == null) throw Exception(pattern)
+                return Pattern(
+                        walls = walls.map { it - relativeInitial + initial }.toSet(),
+                        paths = paths.map { it - relativeInitial + initial }.toSet()
+                )
+            }
+        }
+    }
+
+    private fun availablePoint(point: Point): Boolean {
+        if (point.v0 < -1 || point.v1 < -1) return false
+        if (point.v0 > parameters.mapSize) return false
+        if (point.v1 > parameters.mapSize) return false
+        return true
+    }
+
+    private fun match(point: Point, rawPattern: String): Boolean {
+        val pattern = Pattern.parse(point, rawPattern)
+        if (pattern.paths.any { !availablePoint(it) }) return false
+        if (pattern.walls.any { !availablePoint(it) }) return false
+        if (pattern.paths.any { isWall(it) }) return false
+        if (pattern.walls.any { !isWall(it) }) return false
+        return true
+    }
+
+    private fun match(point: Point, vararg rawPattern: String): Int {
+        return rawPattern.count { match(point, it) }
+    }
+
     private fun appendCorners() {
-        var availableCorners = parameters.verticesMin - countCorners() + 4
+        var availableCorners = parameters.verticesMin - countCorners()
         var pointsIt = emptyList<Point>().iterator()
         var previousAvailableCorners = availableCorners + 1
-        while (availableCorners >= 0) {
+        while (availableCorners > 0) {
             if (!pointsIt.hasNext()) {
                 if (previousAvailableCorners == availableCorners) {
                     println("Has not any possibilities to append, $availableCorners")
@@ -141,56 +115,61 @@ class  TunnelGenerator(private val parameters: Parameters) {
                 pointsIt = matrix.filter { it.value == Cell.WALL }.map { it.key }.iterator()
             }
             val point = pointsIt.next()
-            val fragmentsType = getFragmentTypes(point)
-            if (PLACE_U in fragmentsType) {
-                if (addWallIfCan(point.up())) {
-                    availableCorners -= 4
-                }
-            } else if (PLACE_D in fragmentsType) {
+            if (match(point, "000 000 1x1")) {
                 if (addWallIfCan(point.down())) {
                     availableCorners -= 4
                 }
-            } else if (PLACE_L in fragmentsType) {
-                if (addWallIfCan(point.left())) {
+            } else if (match(point, "1x1 000 000")) {
+                if (addWallIfCan(point.up())) {
                     availableCorners -= 4
                 }
-            } else if (PLACE_R in fragmentsType) {
+            } else if (match(point, "100 x00 100")) {
                 if (addWallIfCan(point.right())) {
                     availableCorners -= 4
                 }
-            } else if (LONG_CORNER_000000011 in fragmentsType) {
-                if (addWallIfCan(point.up())) {
-                    availableCorners -= 2
+            } else if (match(point, "001 00x 001")) {
+                if (addWallIfCan(point.left())) {
+                    availableCorners -= 4
                 }
-            } else if (LONG_CORNER_000000110 in fragmentsType) {
-                if (addWallIfCan(point.up())) {
-                    availableCorners -= 2
-                }
-            } else if (LONG_CORNER_110000000 in fragmentsType) {
+            } else if (match(point, "000 000 0x1")) {
                 if (addWallIfCan(point.down())) {
                     availableCorners -= 2
                 }
-            } else if (LONG_CORNER_011000000 in fragmentsType) {
+            } else if (match(point, "000 000 1x0")) {
                 if (addWallIfCan(point.down())) {
                     availableCorners -= 2
                 }
-            } else if (LONG_CORNER_001001000 in fragmentsType) {
+            } else if (match(point, "1x0 000 000")) {
+                if (addWallIfCan(point.up())) {
+                    availableCorners -= 2
+                }
+            } else if (match(point, "0x1 000 000")) {
+                if (addWallIfCan(point.up())) {
+                    availableCorners -= 2
+                }
+            } else if (match(point, "001 00x 000")) {
                 if (addWallIfCan(point.left())) {
                     availableCorners -= 2
                 }
-            } else if (LONG_CORNER_000001001 in fragmentsType) {
+            } else if (match(point, "000 00x 001")) {
                 if (addWallIfCan(point.left())) {
                     availableCorners -= 2
                 }
-            } else if (LONG_CORNER_100100000 in fragmentsType) {
+            } else if (match(point, "100 x00 000")) {
                 if (addWallIfCan(point.right())) {
                     availableCorners -= 2
                 }
-            } else if (LONG_CORNER_000100100 in fragmentsType) {
+            } else if (match(point, "000 x00 100")) {
                 if (addWallIfCan(point.right())) {
                     availableCorners -= 2
                 }
             }
+//            if (availableCorners + countCorners() != parameters.verticesMin) {
+//                println("AAAAAAAA")
+//                println(point)
+//                println("$availableCorners + ${countCorners()} != ${parameters.verticesMin}")
+//                throw Exception()
+//            }
         }
     }
 
@@ -218,7 +197,6 @@ class  TunnelGenerator(private val parameters: Parameters) {
     private fun countCorners() = matrix.asSequence()
             .filter { it.value == Cell.WALL }
             .map { it.key }
-            .map { getFragmentTypes(it) }
-            .map { it.count { type -> type in CORNERS } }
-            .sum()
+            .map { match(it, "00 0x", "00 x0", "x0 00", "0x 00", "01 1x", "10 x1", "x1 10", "1x 01") }
+            .sum() - 4
 }

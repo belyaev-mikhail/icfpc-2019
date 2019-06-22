@@ -49,6 +49,7 @@ operator fun Point.times(other: Int) = Point(v0 * other, v1 * other)
 operator fun Point.div(other: Int) = Point(v0 / other, v1 / other)
 operator fun Point.plus(other: Int) = Point(v0 + other, v1 + other)
 operator fun Point.plus(other: Point) = Point(v0 + other.v0, v1 + other.v1)
+operator fun Point.minus(other: Point) = Point(v0 - other.v0, v1 - other.v1)
 
 data class DummyPoint(val x: Int, val y: Int) : Comparable<DummyPoint> {
     constructor(p: Point) : this(p.v0, p.v1)
@@ -208,7 +209,6 @@ fun findBoundary(boundaryPoints: List<DummyPoint>): Pair<List<DummyPoint>, Set<D
         val nexPoint = point.movedBy(xDirection, yDirection)
 
         if (boundaryPointsSet.contains(nexPoint)) {
-            println(nexPoint)
             point = nexPoint
             continue
         }

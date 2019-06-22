@@ -2,10 +2,9 @@ package ru.spbstu.generator
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
-import org.organicdesign.fp.collections.PersistentHashMap
 import ru.spbstu.map.Cell
-import ru.spbstu.map.GameMap
 import ru.spbstu.map.Point
 import ru.spbstu.map.dumpMap
 import java.io.File
@@ -13,6 +12,7 @@ import java.io.File
 object Main : CliktCommand() {
     val input: String by option().default("sample/puzzle.cond")
     val output: String by option().default("sample/task.desc")
+    val gui: Boolean by option().flag(default = false)
 
     override fun run() {
         val rawParameters = File(input).readText()
@@ -45,7 +45,9 @@ object Main : CliktCommand() {
             ).joinToString(";").let { writer.print(it) }
         }
 
-        //Test(map, parameters).repaint()
+        if (gui) {
+            Test(map, parameters, bonuses).repaint()
+        }
     }
 }
 
