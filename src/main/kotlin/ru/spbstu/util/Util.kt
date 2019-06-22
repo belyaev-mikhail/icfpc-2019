@@ -20,7 +20,7 @@ fun <K> MutableMap<K, Int>.dec(key: K) {
     val newValue = value - 1
 
     when {
-        newValue > 0 -> this[key] = value
+        newValue > 0 -> this[key] = newValue
         newValue == 0 -> this.remove(key)
         else -> throw ArithmeticException("Cannot dec $key for $this")
     }
@@ -38,7 +38,7 @@ fun <K> Map<K, Int>.dec(key: K): Map<K, Int> {
     val newValue = value - 1
 
     return when {
-        newValue > 0 -> this + (key to value)
+        newValue > 0 -> this + (key to newValue)
         newValue == 0 -> this - key
         else -> throw ArithmeticException("Cannot dec $key for $this")
     }
