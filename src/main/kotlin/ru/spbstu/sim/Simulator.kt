@@ -85,6 +85,10 @@ object CLONE : Command() {
     override fun toString(): String = "C"
 }
 
+object TICK : Command() {
+    override fun toString(): String = ""
+}
+
 enum class Orientation(val dx: Int, val dy: Int) {
     UP(0, 1), DOWN(0, -1), LEFT(-1, 0), RIGHT(1, 0);
 
@@ -225,6 +229,7 @@ internal constructor(val ignore: Any?,
         var newCurrentRobot = currentRobots[idx]
         var newTeleports = teleports
         var newBoosters = boosters
+        var newTime = time
 
         var shouldClone = false
 
@@ -330,6 +335,10 @@ internal constructor(val ignore: Any?,
 
                 shouldClone = true
             }
+
+            is TICK -> {
+                newTime += 1
+            }
         }
 
         var newCurrentRobots = currentRobots.replace(idx, newCurrentRobot)
@@ -338,7 +347,8 @@ internal constructor(val ignore: Any?,
         var newSim = this.copy(
                 currentRobots = newCurrentRobots,
                 boosters = newBoosters,
-                teleports = newTeleports
+                teleports = newTeleports,
+                time = newTime
         ).repaint(idx)
 
         if (!nested && cmd is MoveCommand && FAST_WHEELS in newSim.currentRobots[idx].activeBoosters) {
@@ -352,8 +362,6 @@ internal constructor(val ignore: Any?,
         val newCurrentRobot = currentRobots[idx].tick()
         return copy(
                 currentRobots = currentRobots.replace(idx, newCurrentRobot)
-                // TODO: handle time correctly
-                // time = time + 1
         )
     }
 
@@ -413,6 +421,7 @@ class SimFrame(val cellSize: Int, val mutSim: () -> Simulator) : JFrame() {
                                             BoosterType.DRILL -> g.paint = Color.GREEN
                                             BoosterType.MYSTERY -> g.paint = Color.BLUE
                                             BoosterType.TELEPORT -> g.paint = Color.MAGENTA
+                                            BoosterType.CLONING -> g.paint = Color.PINK
                                         }
 
                                         if (p in teleports) g.paint = Color.PINK
