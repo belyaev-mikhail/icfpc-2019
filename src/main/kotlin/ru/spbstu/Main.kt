@@ -12,6 +12,7 @@ import ru.spbstu.player.*
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Robot
 import ru.spbstu.sim.Simulator
+import ru.spbstu.util.log
 import ru.spbstu.wheels.memoize
 import java.io.File
 
@@ -47,9 +48,9 @@ object Main : CliktCommand() {
         }
 
         File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
-            println("Solution for file $file: ${path?.second?.joinToString("")}")
-            println("Solution score for file $file: ${path?.second?.count()}")
-            println("Best solution for file $file is ${path?.first}")
+            log.debug("Solution for file $file: ${path?.second?.joinToString("")}")
+            log.debug("Solution score for file $file: ${path?.second?.count()}")
+            log.debug("Best solution for file $file is ${path?.first}")
             it.write(path?.second?.map { it.toString() }?.joinToString(""))
         }
     }
