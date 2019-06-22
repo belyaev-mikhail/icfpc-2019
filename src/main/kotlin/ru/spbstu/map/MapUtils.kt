@@ -279,16 +279,16 @@ fun GameMap.corners(): List<Point> {
 
 }
 
-fun GameMap.rectilinearBoundary(): List<Point> {
+fun Map<Point, Cell>.rectilinearBoundary(): List<Point> {
     val res = rectilinearBoundary(
-            this.cells.filter { it.value.status == Status.EMPTY }.mapTo(mutableListOf()) { DummyPoint(it.key) },
-            this.cells.filter { it.value.status.isWall }.mapTo(mutableListOf()) { DummyPoint(it.key) })
+            this.filter { it.value.status == Status.EMPTY }.mapTo(mutableListOf()) { DummyPoint(it.key) },
+            this.filter { it.value.status.isWall }.mapTo(mutableListOf()) { DummyPoint(it.key) })
             .orEmpty()
 
     return res.map { Point(it.x, it.y) }
 }
 
-fun GameMap.dump(): String {
+fun Map<Point, Cell>.dumpMap(): String {
     val sb = StringBuilder()
     sb.append(rectilinearBoundary().joinToString(",") { (x, y) -> "($x,$y)" })
     /**/

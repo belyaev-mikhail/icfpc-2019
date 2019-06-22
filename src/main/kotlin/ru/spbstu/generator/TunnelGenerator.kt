@@ -198,7 +198,7 @@ class  TunnelGenerator(private val parameters: Parameters) {
 
     }
 
-    fun generate(): HashMap<Point, Cell> {
+    fun generate(): Set<Point> {
         parameters.pathsPoints.forEach { matrix[it] = Cell.PATH }
         for (i in -1..parameters.mapSize) {
             matrix[Point(i, -1)] = Cell.WALL
@@ -212,7 +212,7 @@ class  TunnelGenerator(private val parameters: Parameters) {
         appendCorners()
         removeCorners()
         println("${countCorners()} in ${parameters.verticesMin to parameters.verticesMax}")
-        return matrix
+        return matrix.filter { it.value == Cell.WALL }.keys
     }
 
     private fun countCorners() = matrix.asSequence()
