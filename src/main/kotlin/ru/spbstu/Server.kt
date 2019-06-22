@@ -27,7 +27,7 @@ object Server {
 
     private const val TIMEOUT_MS = 10L
 
-    private val pool = newFixedThreadPoolContext(7, "Pool")
+    val pool = newFixedThreadPoolContext(10, "Pool")
 
     private fun handleMap(file: String): String? {
         val data = File(file).let { parseFile(it.name, it.readText()) }
@@ -98,21 +98,25 @@ object Server {
     }
 
     fun processBlock(path: String) {
-        val blockDir = File(path)
-        val blockNumber = Integer.valueOf(blockDir.name)
-        val descFile = Paths.get(blockDir.path, "task.desc").toFile().absolutePath
-        val puzzleFile = Paths.get(blockDir.path, "puzzle.cond").toFile().absolutePath
+        try {
+            val blockDir = File(path)
+            val blockNumber = Integer.valueOf(blockDir.name)
+            val descFile = Paths.get(blockDir.path, "task.desc").toFile().absolutePath
+            val puzzleFile = Paths.get(blockDir.path, "puzzle.cond").toFile().absolutePath
 
-        val solutionFile = handleMap(descFile) ?: return
+            val solutionFile = handleMap(descFile) ?: return
 
-        val puzzleResult = puzzleFile.replace(".cond", ".desc")
-        GeneratorMain.generate(puzzleFile, puzzleResult)
+            val puzzleResult = puzzleFile.replace(".cond", ".desc")
+            GeneratorMain.generate(puzzleFile, puzzleResult)
 
-        val block_num = blockNumber
-        val sol_path = solutionFile
-        val desc_path = puzzleResult
+            val block_num = blockNumber
+            val sol_path = solutionFile
+            val desc_path = puzzleResult
 
-        submitResults(SubmitParams(block_num, sol_path, desc_path))
+            submitResults(SubmitParams(block_num, sol_path, desc_path))
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+        }
     }
 
 
@@ -123,11 +127,10 @@ fun main(args: Array<String>) {
     HttpServer.create(InetSocketAddress(32345), 0).apply {
         createContext("/newBlock") { http ->
             val newBlockPath = http.requestBody.bufferedReader().readText().trim()
-            try {
+            Server.pool.executor.execute {
                 Server.processBlock(newBlockPath)
-            } catch (ex: Exception) {
-                ex.printStackTrace()
             }
+            log.debug("Accepted new block: $newBlockPath")
         }
 
         start()
