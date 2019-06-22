@@ -22,6 +22,7 @@ import java.io.File
 import kotlin.reflect.jvm.reflect
 
 object Main : CliktCommand() {
+    val useAbsoluteMapPath: Boolean by option().flag(default = false)
     val map: String by option(help = "Map to run on").default("all")
     val gui: Boolean by option().flag(default = false)
     val guiCellSize: Int by option().int().default(10)
@@ -134,7 +135,9 @@ object Main : CliktCommand() {
             return
         }
 
-        if (map != "all") {
+        if (useAbsoluteMapPath) {
+            runBlocking { handleMap(map) }
+        } else if (map != "all") {
             runBlocking { handleMap("docs/tasks/prob-$map.desc") }
         } else {
             runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
