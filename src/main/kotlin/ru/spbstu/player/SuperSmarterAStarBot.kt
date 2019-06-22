@@ -227,7 +227,7 @@ fun superSmarterAstarBot(simref: MutableRef<Simulator>) =
                     target ?: break
 
                     when {
-                        BoosterType.MANIPULATOR_EXTENSION in sim.currentRobot.boosters -> {
+                        BoosterType.MANIPULATOR_EXTENSION in sim.boosters -> {
                             val manipulatorXRange = sim.currentRobot.manipulators.map { it.v0 }.sorted()
                             val manipulatorYRange = sim.currentRobot.manipulators.map { it.v1 }.sorted()
 

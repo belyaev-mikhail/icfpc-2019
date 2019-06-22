@@ -210,6 +210,10 @@ internal constructor(val ignore: Any?,
     }
 
     @Deprecated("Should use version with explicit bot index")
+    val currentRobot: Robot
+        get() = currentRobots[0]
+
+    @Deprecated("Should use version with explicit bot index")
     fun apply(cmd: Command, nested: Boolean = false): Simulator {
         return apply(0, cmd, nested)
     }

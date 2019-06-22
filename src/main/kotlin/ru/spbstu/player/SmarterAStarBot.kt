@@ -11,7 +11,7 @@ import java.lang.Math.abs
 
 fun applyBoosters(sim: Simulator) = sequence {
     when {
-        MANIPULATOR_EXTENSION in sim.currentRobot.boosters -> {
+        MANIPULATOR_EXTENSION in sim.boosters -> {
             val manipulatorXRange = sim.currentRobot.manipulators.map { it.v0 }.sorted()
             val manipulatorYRange = sim.currentRobot.manipulators.map { it.v1 }.sorted()
 
