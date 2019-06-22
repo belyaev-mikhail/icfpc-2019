@@ -128,10 +128,10 @@ class  TunnelGenerator(private val parameters: Parameters) {
     }
 
     private fun appendCorners() {
-        var availableCorners = parameters.verticesMin - countCorners()
+        var availableCorners = parameters.verticesMin - countCorners() + 4
         var pointsIt = emptyList<Point>().iterator()
         var previousAvailableCorners = availableCorners + 1
-        while (availableCorners > 0) {
+        while (availableCorners >= 0) {
             if (!pointsIt.hasNext()) {
                 if (previousAvailableCorners == availableCorners) {
                     println("Has not any possibilities to append, $availableCorners")

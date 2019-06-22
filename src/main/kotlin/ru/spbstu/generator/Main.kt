@@ -19,6 +19,8 @@ object Main : CliktCommand() {
         val parameters = Parameters.read(rawParameters)
         val map = TunnelGenerator(parameters).generate()
 
+        val bonuses = BusterGenerator(map, parameters).generate()
+
         val totalMap = mutableMapOf<Point, Cell>()
         for(x in 0..parameters.mapSize) {
             for(y in 0..parameters.mapSize) {
@@ -28,11 +30,19 @@ object Main : CliktCommand() {
             }
         }
 
-        File(output).apply { parentFile.mkdirs() }.printWriter().use {
-            it.print(totalMap.dumpMap())
-            it.print("#")
-            // it.print(robotPosition)
-            it.print("#")
+        File(output).apply { parentFile.mkdirs() }.printWriter().use { writer ->
+            writer.print(totalMap.dumpMap())
+            writer.print("#")
+            writer.print("(${bonuses.robot.v0},${bonuses.robot.v1})")
+            writer.print("##")
+            listOf(
+                    bonuses.cloningBoosters.joinToString(";") { (x, y) -> "C($x,$y)" },
+                    bonuses.drills.joinToString(";") { (x, y) -> "L($x,$y)" },
+                    bonuses.fastWheels.joinToString(";") { (x, y) -> "F($x,$y)" },
+                    bonuses.manipulators.joinToString(";") { (x, y) -> "B($x,$y)" },
+                    bonuses.spawnPoints.joinToString(";") { (x, y) -> "X($x,$y)" },
+                    bonuses.teleports.joinToString(";") { (x, y) -> "R($x,$y)" }
+            ).joinToString(";").let { writer.print(it) }
         }
 
         //Test(map, parameters).repaint()
