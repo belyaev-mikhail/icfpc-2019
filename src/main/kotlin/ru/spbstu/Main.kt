@@ -44,17 +44,17 @@ object Main : CliktCommand() {
 
         val best = run {
             val paths = listOf(
-                    "astarBot" to ::astarBot.withAutoTick(),
-                    "smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
-                    "evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
-                    "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
-                    "smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
-                    "evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
-                    "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
-                    "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
-                    "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
-                    "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick(),
-                    "CloningBotSwarm" to ::CloningBotSwarm)
+                    //"astarBot" to ::astarBot.withAutoTick(),
+                    //"smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
+                    //"evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
+                    //"priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
+                    //"smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
+                    //"evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
+                    //"theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
+                    //"theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
+                    //"evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
+                    "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick()
+                    /* "CloningBotSwarm" to ::CloningBotSwarm*/)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
@@ -63,15 +63,20 @@ object Main : CliktCommand() {
                         val bot = it.second
 
                         async {
-                            val res = handleMapSingle(sim, bot)
-                            File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
-                                it.write(res.first.toSolution())
+                            try {
+                                val res = handleMapSingle(sim, bot)
+                                File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
+                                    it.write(res.first.toSolution())
+                                }
+                                name to res
+                            } catch(ex: Exception) {
+                                ex.printStackTrace()
+                                name to null
                             }
-                            name to res
                         }
                     }.awaitAll()
 
-            paths.minBy { it.second.second }
+            paths.minBy { it.second?.second ?: Int.MAX_VALUE }
         }
 
         val name = best?.first
@@ -107,6 +112,7 @@ object Main : CliktCommand() {
                 sim = sim.apply(command.first, command.second)
             }
         }
+        check(sim.hasSolved)
 
         return path to sim.time
     }
@@ -122,18 +128,18 @@ object Main : CliktCommand() {
             val dirs = folder.listFiles().filter { it.isDirectory }.sortedBy { it.name }
             val allNames = dirs.flatMapTo(mutableSetOf()) { it.list().filter { it.endsWith(".sol") }.asIterable() }
             for (name in allNames) {
+                log.debug("File: $name")
                 val scoring = mutableMapOf<File, Pair<Int, String>>()
                 for (dir in dirs) {
                     val file = dir.listFiles { _, nm -> nm == name }.firstOrNull()
                             ?: continue
                     val text = file.readText()
-                    val ans = parseAnswer(text)
+                    val ans = try { parseAnswer(text) } catch(ex: Exception) { continue }
                     val score = ans.maxBy { it.size }?.size!!
                     scoring[dir] = score to text
                 }
                 File(sols, name).printWriter().use {
                     val top = scoring.minBy { it.value.first }
-                    log.debug("File: $name")
                     check(top != null)
                     log.debug("Top score: ${top.value.first}; folder: ${top.key}")
                     it.print(top.value.second)
