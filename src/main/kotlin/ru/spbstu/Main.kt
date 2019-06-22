@@ -42,7 +42,13 @@ object Main : CliktCommand() {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 
-                        it.name to async { handleMapSingle(sim, it) }
+                         it.name to async {
+                            val res = handleMapSingle(sim, it)
+                            File(File(it.name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
+                                it.write(res.map { it.toString() }.joinToString(""))
+                            }
+                            res
+                        }
                     }
 
             while (paths.any { it.second.isActive }) {
