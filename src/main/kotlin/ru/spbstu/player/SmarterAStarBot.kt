@@ -16,7 +16,7 @@ import java.lang.Math.abs
 
 fun checkNearestBooster(sim: Simulator, bot: Robot, maxDist: Double = 5.0, predicate: (Cell) -> Boolean): Point? {
     val nearestBooster = sim.gameMap
-            .cells
+            .boosterCells
             .filter { predicate(it.value) }
             .minBy { bot.pos.euclidDistance(it.key) }
 
@@ -84,16 +84,15 @@ fun smarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int 
 
                 val currentRobot = { sim.currentRobots[idx] }
 
-                val cells = sim.gameMap.cells.filter { it.key in points }
-                val target = cells
-                        .filter { it.value.status == Status.EMPTY }
-                        .minBy {
-                            currentRobot().pos.euclidDistance(it.key)
+                val target = sim.gameMap
+                        .closestFrom(currentRobot().pos) {
+                            point, cell -> point in points && cell.status == Status.EMPTY
                         }
+                        .firstOrNull()
 
                 target ?: break
 
-                val local = astarWalk(sim, target.key, idx)
+                val local = astarWalk(sim, target.first, idx)
                 yieldAll(local)
             }
         }.withIdx(idx)
@@ -105,7 +104,6 @@ fun evenSmarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: 
 
                 val currentRobot = { sim.currentRobots[idx] }
 
-                val cells = sim.gameMap.cells.filter { it.key in points }
                 yieldAll(applyBoosters(sim, idx))
 
                 val closestBooster = checkNearestBooster(sim, currentRobot()) {
@@ -118,16 +116,15 @@ fun evenSmarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: 
                 }
                 yieldAll(applyBoosters(sim, idx))
 
-                val target = cells
-                        .filter { it.value.status == Status.EMPTY }
-                        .minBy {
-                            currentRobot().pos.euclidDistance(it.key)
+                val target = sim.gameMap
+                        .closestFrom(currentRobot().pos) {
+                            point, cell -> point in points && cell.status == Status.EMPTY
                         }
-
+                        .firstOrNull()
 
                 target ?: break
 
-                val local = astarWalk(sim, target.key, idx)
+                val local = astarWalk(sim, target.first, idx)
                 yieldAll(local)
             }
         }.withIdx(idx)
@@ -141,17 +138,16 @@ fun theMostSmartestAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, i
 
                 yieldAll(applyBoosters(sim, idx))
 
-                val cells = sim.gameMap.cells.filter { it.key in points }
-                val target = cells
-                        .filter { it.value.status == Status.EMPTY }
-                        .minBy {
-                            currentRobot().pos.euclidDistance(it.key)
+                val target = sim.gameMap
+                        .closestFrom(currentRobot().pos) {
+                            point, cell -> point in points && cell.status == Status.EMPTY
                         }
-
+                        .firstOrNull()
 
                 target ?: break
 
-                val local = astarWalk(sim, target.key, idx)
+                val local = astarWalk(sim, target.first, idx)
+
                 for (command in local) {
                     val booster = checkNearestBooster(sim, currentRobot()) {
                         it.booster == MANIPULATOR_EXTENSION
