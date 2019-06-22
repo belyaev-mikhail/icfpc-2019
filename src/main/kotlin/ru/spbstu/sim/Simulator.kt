@@ -85,6 +85,14 @@ object CLONE : Command() {
     override fun toString(): String = "C"
 }
 
+object TICK : Command() {
+    override fun toString(): String = ""
+}
+
+object NOT_EXIST: Command() {
+    override fun toString(): String = "N"
+}
+
 enum class Orientation(val dx: Int, val dy: Int) {
     UP(0, 1), DOWN(0, -1), LEFT(-1, 0), RIGHT(1, 0);
 
@@ -180,6 +188,7 @@ internal constructor(val ignore: Any?,
                      val gameMap: GameMap,
                      val time: Int = 0,
                      val boosters: Map<BoosterType, Int> = mapOf(),
+                     val freshBoosters: Map<BoosterType, Int> = mapOf(),
                      val teleports: Set<Point> = setOf()) {
 
     fun die(idx: Int, msg: String): Nothing = throw SimulatorException(msg, currentRobots[idx], gameMap)
@@ -191,10 +200,7 @@ internal constructor(val ignore: Any?,
 
         newGameMap = newGameMap.set(
                 currentRobots[idx].pos,
-                oldBotCell.copy(
-                        status = WRAP,
-                        booster = if (oldBotCell.booster == MYSTERY) MYSTERY else null
-                )
+                oldBotCell.copy(status = WRAP)
         )
 
         for (mp in currentRobots[idx].manipulatorPos) {
@@ -222,17 +228,35 @@ internal constructor(val ignore: Any?,
 
         // nested == true means we're processing second part of fast wheels
 
+        var newGameMap = gameMap
         var newCurrentRobot = currentRobots[idx]
         var newTeleports = teleports
         var newBoosters = boosters
+        var newFreshBoosters = freshBoosters
+        var newTime = time
 
         var shouldClone = false
+
+        val (_, newBooster) = newGameMap[newCurrentRobot.pos]
+
+        when (newBooster) {
+            null, MYSTERY -> {
+                // Do nothing
+            }
+            else -> {
+                newFreshBoosters = newFreshBoosters.inc(newBooster)
+                newGameMap = newGameMap.set(
+                        newCurrentRobot.pos,
+                        Cell.Wrap
+                )
+            }
+        }
 
         when (cmd) {
             is MoveCommand -> {
                 val newPos = newCurrentRobot.pos.moveTo(cmd.dir)
 
-                val (newCell, newBooster) = gameMap[newPos]
+                val (newCell, _) = gameMap[newPos]
 
                 when (newCell) {
                     EMPTY, WRAP -> {
@@ -246,15 +270,6 @@ internal constructor(val ignore: Any?,
                     SUPERWALL -> {
                         if (nested) return this
                         die(idx, "Cannot move through outer wall")
-                    }
-                }
-
-                when (newBooster) {
-                    null, MYSTERY -> {
-                        // Do nothing
-                    }
-                    else -> {
-                        newBoosters = newBoosters.inc(newBooster)
                     }
                 }
 
@@ -330,15 +345,32 @@ internal constructor(val ignore: Any?,
 
                 shouldClone = true
             }
+
+            is TICK -> {
+                newTime += 1
+
+                for ((k, v) in newBoosters) {
+                    newBoosters = newBoosters + (k to v + (newFreshBoosters[k] ?: 0))
+                }
+                for ((k, v) in newFreshBoosters) {
+                    if (k in newBoosters) continue
+                    newBoosters = newBoosters + (k to v)
+                }
+
+                newFreshBoosters = emptyMap()
+            }
         }
 
         var newCurrentRobots = currentRobots.replace(idx, newCurrentRobot)
         if (shouldClone) newCurrentRobots = newCurrentRobots.append(Robot(newCurrentRobot.pos))
 
         var newSim = this.copy(
+                gameMap = newGameMap,
                 currentRobots = newCurrentRobots,
                 boosters = newBoosters,
-                teleports = newTeleports
+                freshBoosters = newFreshBoosters,
+                teleports = newTeleports,
+                time = newTime
         ).repaint(idx)
 
         if (!nested && cmd is MoveCommand && FAST_WHEELS in newSim.currentRobots[idx].activeBoosters) {
@@ -352,8 +384,6 @@ internal constructor(val ignore: Any?,
         val newCurrentRobot = currentRobots[idx].tick()
         return copy(
                 currentRobots = currentRobots.replace(idx, newCurrentRobot)
-                // TODO: handle time correctly
-                // time = time + 1
         )
     }
 
@@ -413,6 +443,7 @@ class SimFrame(val cellSize: Int, val mutSim: () -> Simulator) : JFrame() {
                                             BoosterType.DRILL -> g.paint = Color.GREEN
                                             BoosterType.MYSTERY -> g.paint = Color.BLUE
                                             BoosterType.TELEPORT -> g.paint = Color.MAGENTA
+                                            BoosterType.CLONING -> g.paint = Color.PINK
                                         }
 
                                         if (p in teleports) g.paint = Color.PINK

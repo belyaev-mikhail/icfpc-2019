@@ -55,13 +55,13 @@ data class RobotAndCommand(val v0: Robot, val v1: Command) {
     override fun hashCode(): Int = Objects.hash(v0.pos, v0.orientation)
 }
 
-fun astarWalk(sim: Simulator, target: Point): List<Command> {
-    val robot = sim.currentRobot
+fun astarWalk(sim: Simulator, target: Point, idx: Int = 0): List<Command> {
+    val robot = { sim.currentRobots[idx] }
 
     check(!sim.gameMap[target].status.isWall)
 
     return aStarSearch(
-            RobotAndCommand(robot, USE_DRILL),
+            RobotAndCommand(robot(), USE_DRILL),
             heur = { (robot, _) ->
                 (robot.manipulatorPos.map { it.manhattanDistance(target) }.min()
                         ?: Int.MAX_VALUE).toDouble() +
@@ -79,13 +79,13 @@ fun astarWalk(sim: Simulator, target: Point): List<Command> {
     )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
 }
 
-fun astarWithoutTurnsWalk(sim: Simulator, target: Point): List<Command> {
-    val robot = sim.currentRobot
+fun astarWithoutTurnsWalk(sim: Simulator, target: Point, idx: Int = 0): List<Command> {
+    val robot = { sim.currentRobots[idx] }
 
     check(!sim.gameMap[target].status.isWall)
 
     return aStarSearch(
-            RobotAndCommand(robot, USE_DRILL),
+            RobotAndCommand(robot(), USE_DRILL),
             heur = { (robot, _) ->
                 robot.pos.manhattanDistance(target).toDouble()
             },
@@ -101,13 +101,13 @@ fun astarWithoutTurnsWalk(sim: Simulator, target: Point): List<Command> {
     )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
 }
 
-fun visibleAstarWalk(sim: Simulator, target: Point): List<Command> {
-    val robot = sim.currentRobot
+fun visibleAstarWalk(sim: Simulator, target: Point, idx: Int = 0): List<Command> {
+    val robot = { sim.currentRobots[idx] }
 
     check(!sim.gameMap[target].status.isWall)
 
     return aStarSearch(
-            RobotAndCommand(robot, USE_DRILL),
+            RobotAndCommand(robot(), USE_DRILL),
             heur = { (robot, _) ->
                 robot.manipulatorPos
                         .map { it.manhattanDistance(target).toDouble() + if (sim.gameMap.isVisible(robot.pos, it)) 0.1 else 0.0 }

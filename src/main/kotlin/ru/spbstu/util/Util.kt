@@ -2,6 +2,12 @@ package ru.spbstu.util
 
 import kotlinx.coroutines.Deferred
 
+import ru.spbstu.map.Point
+import ru.spbstu.sim.Command
+import ru.spbstu.sim.Simulator
+import ru.spbstu.sim.TICK
+import ru.spbstu.wheels.MutableRef
+
 fun <K> MutableMap<K, Int>.inc(key: K) {
     val value = this[key] ?: 0
 
@@ -39,3 +45,19 @@ fun <K> Map<K, Int>.dec(key: K): Map<K, Int> {
 }
 
 suspend fun <T> List<Deferred<T>>.awaitAll() = kotlinx.coroutines.awaitAll(*this.toTypedArray())
+
+fun <T> Sequence<T>.withIdx(idx: Int) = map { idx to it }
+
+fun <T> Sequence<Pair<Int, T>>.toSolution(): String {
+    val groups = groupBy { it.first }
+    return groups
+            .keys
+            .sorted()
+            .map { groups[it]?.map { it.second }?.joinToString("") }
+            .joinToString("#")
+}
+
+fun ((MutableRef<Simulator>, Set<Point>, Int) -> Sequence<Pair<Int, Command>>).withAutoTick() =
+        { sim: MutableRef<Simulator>, points: Set<Point>, idx: Int ->
+            this(sim, points, idx).flatMap { sequenceOf(it, 0 to TICK) }
+        }

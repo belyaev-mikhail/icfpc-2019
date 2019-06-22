@@ -1,15 +1,18 @@
 package ru.spbstu.player
 
+import org.graphstream.algorithm.Kruskal
+import org.graphstream.graph.DepthFirstIterator
 import org.graphstream.graph.Edge
 import org.graphstream.graph.Graph
 import org.graphstream.graph.Node
 import org.graphstream.graph.implementations.SingleGraph
-import org.graphstream.algorithm.Kruskal
-import org.graphstream.graph.DepthFirstIterator
 import ru.spbstu.map.*
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Simulator
-import ru.spbstu.wheels.*
+import ru.spbstu.wheels.MutableRef
+import ru.spbstu.wheels.getValue
+import ru.spbstu.wheels.isNotEmpty
+import ru.spbstu.wheels.queue
 import java.awt.Color
 import java.awt.Graphics
 import java.awt.Graphics2D
@@ -110,7 +113,6 @@ object SuperSmarterAStarBot {
         return graph
     }
 
-
     fun toPanel(cellSize: Int, gameMap: GameMap, blobs: List<Blob>): JPanel = with(gameMap) {
         return object : JPanel() {
             init {
@@ -154,8 +156,10 @@ object SuperSmarterAStarBot {
         val maxSize = BLOB_SIZE * BLOB_SIZE
         val result = blobs.toMutableList()
         while (true) {
-            val candidate = result.find { it.points.size < 0.2 * maxSize } ?: break
-            val mergeWith = result.find { it != candidate && it.isNeighbor(candidate) } ?: break
+            val candidate = result.find { it.points.size < 0.2 * maxSize }
+                    ?: break
+            val mergeWith = result.find { it != candidate && it.isNeighbor(candidate) }
+                    ?: break
             result.remove(candidate)
             result.remove(mergeWith)
             result.add(Blob(mergeWith.initial, mergeWith.points + candidate.points))
@@ -181,9 +185,11 @@ object SuperSmarterAStarBot {
         return nodes.map { blobs[it.id]!! }
     }
 
-    fun run(simref: MutableRef<Simulator>, points: Set<Point>): Sequence<Command> {
+    fun run(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0): Sequence<Pair<Int, Command>> {
         return sequence {
             val sim by simref
+
+            val currentRobot = { sim.currentRobots[idx] }
 
             val initialBlobs = findBlobs(sim.gameMap)
             val blobs = optimizeBlobs(initialBlobs)
@@ -192,14 +198,13 @@ object SuperSmarterAStarBot {
             kruskal.init(graph)
             kruskal.compute()
 
-
-            val initialBlobIdx = blobs.indexOfFirst { sim.currentRobot.pos in it }
+            val initialBlobIdx = blobs.indexOfFirst { currentRobot().pos in it }
             val rootNode = graph.getNode<Node>("$initialBlobIdx")
 
             val orderedBlobs = getBlobsOrdered(rootNode, graph.getNodeSet<Node>().toList(), kruskal.getTreeEdges<Edge>().toList())
 
             for (blob in orderedBlobs) {
-                yieldAll(evenSmarterPriorityAstarBot(simref, blob.points))
+                yieldAll(evenSmarterPriorityAstarBot(simref, blob.points, idx))
             }
         }
     }

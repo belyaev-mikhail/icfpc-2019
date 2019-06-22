@@ -1,18 +1,23 @@
 package ru.spbstu.player
-import ru.spbstu.map.*
+
+import ru.spbstu.map.Cell
+import ru.spbstu.map.Point
+import ru.spbstu.map.Status
+import ru.spbstu.map.neighbours
 import ru.spbstu.sim.*
 import ru.spbstu.util.DisjointSets
+import ru.spbstu.util.withIdx
 import ru.spbstu.wheels.*
 
 fun Simulator.groups(): Int {
     val dj = DisjointSets<Point>()
     val counter = mutableMapOf<Any?, Int>()
 
-    for((p, c) in this.gameMap.cells) {
+    for ((p, c) in this.gameMap.cells) {
         dj.add(p)
-        for(n in p.neighbours()) {
+        for (n in p.neighbours()) {
             dj.add(n)
-            if(gameMap[n].status == c.status) dj.union(p, n)
+            if (gameMap[n].status == c.status) dj.union(p, n)
         }
     }
 
@@ -21,7 +26,7 @@ fun Simulator.groups(): Int {
 
 data class SimAndCommand(val sim: Simulator, val command: Command, val points: Set<Point>) {
     val empties: Double by lazy {
-        sim.gameMap.cells.filter<Point, Cell>{it.key in points}.count<Point, Cell> {
+        sim.gameMap.cells.filter<Point, Cell> { it.key in points }.count {
             it.value.status == Status.EMPTY
         }.toDouble()
     }
@@ -52,11 +57,11 @@ fun wholeMapAStar(sim: Simulator, points: Set<Point>) = run {
     )
 }
 
-fun persistentBot(simref: MutableRef<Simulator>, points: Set<Point> /*todo*/) =
+fun persistentBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) =
         sequence {
-            while(true) {
+            while (true) {
                 val sim by simref
                 val mpp = wholeMapAStar(sim, points).orEmpty().reversed().drop(1)
                 yieldAll(mpp.map { it.command })
             }
-        }
+        }.withIdx(idx)

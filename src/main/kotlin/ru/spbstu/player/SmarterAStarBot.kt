@@ -1,34 +1,41 @@
 package ru.spbstu.player
 
-import ru.spbstu.map.BoosterType
-import ru.spbstu.map.BoosterType.MANIPULATOR_EXTENSION
+import ru.spbstu.map.BoosterType.*
+import ru.spbstu.map.Cell
 import ru.spbstu.map.Point
 import ru.spbstu.map.Status
 import ru.spbstu.map.euclidDistance
 import ru.spbstu.sim.ATTACH_MANUPULATOR
+import ru.spbstu.sim.CLONE
 import ru.spbstu.sim.Robot
 import ru.spbstu.sim.Simulator
+import ru.spbstu.util.withIdx
 import ru.spbstu.wheels.MutableRef
 import ru.spbstu.wheels.getValue
 import java.lang.Math.abs
 
-fun checkNearestBooster(sim: Simulator, bot: Robot): Point? {
+fun checkNearestBooster(sim: Simulator, bot: Robot, maxDist: Double = 5.0, predicate: (Cell) -> Boolean): Point? {
     val nearestBooster = sim.gameMap
             .cells
-            .filter { it.value.booster != null }
-            .filter { it.value.booster == BoosterType.MANIPULATOR_EXTENSION }
+            .filter { predicate(it.value) }
             .minBy { bot.pos.euclidDistance(it.key) }
+
+    val dist = nearestBooster?.key?.euclidDistance(bot.pos) ?: return null
+
     return when {
-        nearestBooster != null && bot.pos.euclidDistance(nearestBooster.key) < 5.0 -> nearestBooster.key
+        0.0 < dist && dist < maxDist -> nearestBooster.key
         else -> null
     }
 }
 
-fun applyBoosters(sim: Simulator) = sequence {
+fun applyBoosters(sim: Simulator, idx: Int = 0) = sequence {
     when {
+        CLONING in sim.boosters && sim.gameMap[sim.currentRobots[idx].pos].booster == MYSTERY -> {
+            yield(CLONE)
+        }
         MANIPULATOR_EXTENSION in sim.boosters -> {
-            val manipulatorXRange = sim.currentRobot.manipulators.map { it.v0 }.sorted()
-            val manipulatorYRange = sim.currentRobot.manipulators.map { it.v1 }.sorted()
+            val manipulatorXRange = sim.currentRobots[idx].manipulators.map { it.v0 }.sorted()
+            val manipulatorYRange = sim.currentRobots[idx].manipulators.map { it.v1 }.sorted()
 
             if (manipulatorXRange.toSet().size == 1) { // vertical extension
                 val newX = manipulatorXRange.first()
@@ -70,82 +77,92 @@ fun applyBoosters(sim: Simulator) = sequence {
     }
 }
 
-fun smarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
+fun smarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) =
         sequence {
             while (true) {
                 val sim by simref
+
+                val currentRobot = { sim.currentRobots[idx] }
+
                 val cells = sim.gameMap.cells.filter { it.key in points }
                 val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
-                            sim.currentRobot.pos.euclidDistance(it.key)
+                            currentRobot().pos.euclidDistance(it.key)
                         }
 
                 target ?: break
 
-                val local = astarWalk(sim, target.key)
+                val local = astarWalk(sim, target.key, idx)
                 yieldAll(local)
             }
-        }
+        }.withIdx(idx)
 
-fun evenSmarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
+fun evenSmarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) =
         sequence {
             while (true) {
                 val sim by simref
-                val cells = sim.gameMap.cells.filter { it.key in points }
-                yieldAll(applyBoosters(sim))
 
-                val closestBooster = checkNearestBooster(sim, sim.currentRobot)
+                val currentRobot = { sim.currentRobots[idx] }
+
+                val cells = sim.gameMap.cells.filter { it.key in points }
+                yieldAll(applyBoosters(sim, idx))
+
+                val closestBooster = checkNearestBooster(sim, currentRobot()) {
+                    it.booster == MANIPULATOR_EXTENSION
+                }
 
                 if (closestBooster != null) {
-                    val local = astarWithoutTurnsWalk(sim, closestBooster)
+                    val local = astarWithoutTurnsWalk(sim, closestBooster, idx)
                     yieldAll(local)
                 }
-                yieldAll(applyBoosters(sim))
+                yieldAll(applyBoosters(sim, idx))
 
                 val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
-                            sim.currentRobot.pos.euclidDistance(it.key)
+                            currentRobot().pos.euclidDistance(it.key)
                         }
 
 
                 target ?: break
 
-                val local = astarWalk(sim, target.key)
+                val local = astarWalk(sim, target.key, idx)
                 yieldAll(local)
             }
-        }
+        }.withIdx(idx)
 
-
-fun theMostSmartestAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
+fun theMostSmartestAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) =
         sequence {
             while (true) {
                 val sim by simref
 
-                yieldAll(applyBoosters(sim))
-                var currentBot = sim.currentRobot
+                val currentRobot = { sim.currentRobots[idx] }
 
-                val cells = sim.gameMap.cells.filter { it.key in points}
+                yieldAll(applyBoosters(sim, idx))
+
+                val cells = sim.gameMap.cells.filter { it.key in points }
                 val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
-                            sim.currentRobot.pos.euclidDistance(it.key)
+                            currentRobot().pos.euclidDistance(it.key)
                         }
 
 
                 target ?: break
 
-                val local = astarWalk(sim, target.key)
+                val local = astarWalk(sim, target.key, idx)
                 for (command in local) {
-                    val booster = checkNearestBooster(sim, currentBot)
+                    val booster = checkNearestBooster(sim, currentRobot()) {
+                        it.booster == MANIPULATOR_EXTENSION
+                    }
                     if (booster != null) {
-                        val pathToBooster = astarWithoutTurnsWalk(sim, booster)
+                        val pathToBooster = astarWithoutTurnsWalk(sim, booster, idx)
                         yieldAll(pathToBooster)
                         break
                     }
-                    currentBot = currentBot.doCommand(command)
+                    // currentBot = currentBot.doCommand(command)
                     yield(command)
                 }
             }
-        }
+        }.withIdx(idx)

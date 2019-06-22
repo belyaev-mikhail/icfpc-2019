@@ -15,8 +15,11 @@ import ru.spbstu.sim.*
 import ru.spbstu.util.awaitAll
 import ru.spbstu.wheels.*
 import ru.spbstu.util.log
-import ru.spbstu.wheels.memoize
+import ru.spbstu.util.toSolution
+import ru.spbstu.util.withAutoTick
+import ru.spbstu.wheels.*
 import java.io.File
+import kotlin.reflect.jvm.reflect
 
 object Main : CliktCommand() {
     val map: String by option(help = "Map to run on").default("all")
@@ -35,43 +38,57 @@ object Main : CliktCommand() {
         val data = File(file).let { parseFile(it.name, it.readText()) }
         log.debug("Running portfolio for $file")
 
-        val path = run {
-            val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot,
-                    ::priorityAstarBot,::smarterPriorityAstarBot, ::evenSmarterPriorityAstarBot,
-                    SuperSmarterAStarBot::run)
+        val best = run {
+            val paths = listOf(
+                    ::astarBot.withAutoTick(),
+                    ::smarterAstarBot.withAutoTick(),
+                    ::evenSmarterAstarBot.withAutoTick(),
+                    ::priorityAstarBot.withAutoTick(),
+                    ::smarterPriorityAstarBot.withAutoTick(),
+                    ::evenSmarterPriorityAstarBot.withAutoTick(),
+                    ::theMostSmartestPriorityAstarBot.withAutoTick(),
+                    SuperSmarterAStarBot::run.withAutoTick(),
+                    ::CloningBotSwarm)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 
+                        val name = it.reflect()!!.name
                         async {
                             val res = handleMapSingle(sim, it)
-                            File(File(File("candidates"), it.name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
-                                it.write(res.map { it.toString() }.joinToString(""))
+                            File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
+                                it.write(res.first.toSolution())
                             }
-                            it.name to res
+                            name to res
                         }
                     }.awaitAll()
 
-            paths.minBy { it.second.count() }
+            paths.minBy { it.second.second }
         }
 
+        val name = best?.first
+        val score = best?.second?.second
+        val paths = best?.second?.first
+
+        val sol = paths?.toSolution()
+
         File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
-            log.debug("Solution for file $file: ${path?.second?.joinToString("")}")
-            log.debug("Solution score for file $file: ${path?.second?.count()}")
-            log.debug("Best solution for file $file is ${path?.first}")
-            it.write(path?.second?.map { it.toString() }?.joinToString(""))
+            log.debug("Solution for file $file: $sol")
+            log.debug("Solution score for file $file: $score")
+            log.debug("Best solution for file $file is $name")
+            it.write(sol)
         }
     }
 
-    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>) -> Sequence<Command>): Sequence<Command> {
+    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>, Int) -> Sequence<Pair<Int, Command>>): Pair<Sequence<Pair<Int, Command>>, Int> {
         val mutSim = ref(isim)
         var sim by mutSim
-        val path = bot(mutSim, sim.gameMap.cells.keys).memoize()
+        val path = bot(mutSim, sim.gameMap.cells.keys, 0).memoize()
 
         if (gui) {
             val frame = SimFrame(guiCellSize) { mutSim.value }
             for (command in path) {
-                sim = sim.apply(command)
+                sim = sim.apply(command.first, command.second)
                 delay((1000.0 / speed).toLong())
                 frame.repaint()
             }
@@ -79,15 +96,15 @@ object Main : CliktCommand() {
             frame.dispose()
         } else {
             for (command in path) {
-                sim = sim.apply(command)
+                sim = sim.apply(command.first, command.second)
             }
         }
 
-        return path
+        return path to sim.time
     }
 
     override fun run() {
-        if(mergeSolutions) { /* merge solution mode */
+        if (mergeSolutions) { /* merge solution mode */
             val folder = File(candidatesFolder)
             val sols = File(solFolder)
             sols.mkdirs()
@@ -96,23 +113,14 @@ object Main : CliktCommand() {
 
             val dirs = folder.listFiles().filter { it.isDirectory }.sortedBy { it.name }
             val allNames = dirs.flatMapTo(mutableSetOf()) { it.list().filter { it.endsWith(".sol") }.asIterable() }
-            for(name in allNames) {
+            for (name in allNames) {
                 val scoring = mutableMapOf<File, Pair<Int, String>>()
-                for(dir in dirs) {
-                    val file = dir.listFiles { _, nm -> nm == name  }.firstOrNull() ?: continue
+                for (dir in dirs) {
+                    val file = dir.listFiles { _, nm -> nm == name }.firstOrNull()
+                            ?: continue
                     val text = file.readText()
                     val ans = parseAnswer(text)
-                    var score = 0
-                    var numberOfBots = 1
-                    val iterator = ans.iterator()
-                    while(iterator.hasNext()) {
-                        for(i in 1..numberOfBots) {
-                            check(iterator.hasNext())
-                            val command = iterator.next()
-                            if(command === CLONE) ++numberOfBots
-                        }
-                        ++score
-                    }
+                    val score = ans.maxBy { it.size }?.size!!
                     scoring[dir] = score to text
                 }
                 File(sols, name).printWriter().use {
