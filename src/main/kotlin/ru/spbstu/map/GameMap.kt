@@ -38,7 +38,8 @@ enum class BoosterType(val timer: Int, val ascii: String) {
     FAST_WHEELS(50, "F"),
     DRILL(30, "L"),
     MYSTERY(0, "X"),
-    TELEPORT(0, "R");
+    TELEPORT(0, "R"),
+    CLONING(0, "C");
 
     fun toASCII(): String = ascii
 
