@@ -37,6 +37,7 @@ object Main : CliktCommand() {
         val path = run {
             val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot,
                     ::priorityAstarBot,::smarterPriorityAstarBot, ::evenSmarterPriorityAstarBot,
+                    ::theMostSmartestAstarBot, ::theMostSmartestPriorityAstarBot,
                     SuperSmarterAStarBot::run)
                     .map {
                         val map = GameMap(data)
@@ -105,17 +106,7 @@ object Main : CliktCommand() {
                     val file = dir.listFiles { _, nm -> nm == name  }.firstOrNull() ?: continue
                     val text = file.readText()
                     val ans = parseAnswer(text)
-                    var score = 0
-                    var numberOfBots = 1
-                    val iterator = ans.iterator()
-                    while(iterator.hasNext()) {
-                        for(i in 1..numberOfBots) {
-                            check(iterator.hasNext())
-                            val command = iterator.next()
-                            if(command === CLONE) ++numberOfBots
-                        }
-                        ++score
-                    }
+                    val score = ans.maxBy { it.size }!!.size
                     scoring[dir] = score to text
                 }
                 File(sols, name).printWriter().use {
