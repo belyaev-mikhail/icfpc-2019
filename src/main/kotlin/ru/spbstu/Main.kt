@@ -37,7 +37,7 @@ object Main : CliktCommand() {
         val path = run {
             val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot,
                     ::priorityAstarBot,::smarterPriorityAstarBot, ::evenSmarterPriorityAstarBot,
-                    ::superSmarterAstarBot)
+                    SuperSmarterAStarBot::run)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
