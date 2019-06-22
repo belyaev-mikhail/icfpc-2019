@@ -12,10 +12,12 @@ import ru.spbstu.parse.parseAnswer
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.*
 import ru.spbstu.sim.*
-import ru.spbstu.wheels.*
 import ru.spbstu.util.log
-import ru.spbstu.wheels.memoize
+import ru.spbstu.util.toSolution
+import ru.spbstu.util.withAutoTick
+import ru.spbstu.wheels.*
 import java.io.File
+import kotlin.reflect.jvm.reflect
 
 object Main : CliktCommand() {
     val map: String by option(help = "Map to run on").default("all")
@@ -35,12 +37,29 @@ object Main : CliktCommand() {
         log.debug("Running portfolio for $file")
 
         val best = run {
-            val paths = listOf(::CloningBotSwarm)
+            val paths = listOf(
+                    ::astarBot.withAutoTick(),
+                    ::smarterAstarBot.withAutoTick(),
+                    ::evenSmarterAstarBot.withAutoTick(),
+                    ::priorityAstarBot.withAutoTick(),
+                    ::smarterPriorityAstarBot.withAutoTick(),
+                    ::evenSmarterPriorityAstarBot.withAutoTick(),
+                    ::theMostSmartestPriorityAstarBot.withAutoTick(),
+                    SuperSmarterAStarBot::run.withAutoTick(),
+                    ::CloningBotSwarm)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 
-                        it.name to async { handleMapSingle(sim, it) }
+                        val name = it.reflect()!!.name
+
+                        name to async {
+                            val res = handleMapSingle(sim, it)
+                            File(File(name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
+                                it.write(res.first.toSolution())
+                            }
+                            res
+                        }
                     }
 
             while (paths.any { it.second.isActive }) {
@@ -52,10 +71,9 @@ object Main : CliktCommand() {
 
         val name = best?.first
         val score = best?.second?.second
-        val paths = best?.second?.first?.groupBy { it.first }
+        val paths = best?.second?.first
 
-        val sol = paths?.keys?.sorted()?.map { paths[it]?.map { it.second }?.joinToString("") }
-                ?.joinToString("#")
+        val sol = paths?.toSolution()
 
         File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
             log.debug("Solution for file $file: $sol")
@@ -65,10 +83,10 @@ object Main : CliktCommand() {
         }
     }
 
-    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>) -> Sequence<Pair<Int, Command>>): Pair<Sequence<Pair<Int, Command>>, Int> {
+    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>, Int) -> Sequence<Pair<Int, Command>>): Pair<Sequence<Pair<Int, Command>>, Int> {
         val mutSim = ref(isim)
         var sim by mutSim
-        val path = bot(mutSim, sim.gameMap.cells.keys).memoize()
+        val path = bot(mutSim, sim.gameMap.cells.keys, 0).memoize()
 
         if (gui) {
             val frame = SimFrame(guiCellSize) { mutSim.value }
@@ -89,7 +107,7 @@ object Main : CliktCommand() {
     }
 
     override fun run() {
-        if(mergeSolutions) { /* merge solution mode */
+        if (mergeSolutions) { /* merge solution mode */
             val folder = File(candidatesFolder)
             val sols = File(solFolder)
             sols.mkdirs()
@@ -98,20 +116,21 @@ object Main : CliktCommand() {
 
             val dirs = folder.listFiles().filter { it.isDirectory }.sortedBy { it.name }
             val allNames = dirs.flatMapTo(mutableSetOf()) { it.list().filter { it.endsWith(".sol") }.asIterable() }
-            for(name in allNames) {
+            for (name in allNames) {
                 val scoring = mutableMapOf<File, Pair<Int, String>>()
-                for(dir in dirs) {
-                    val file = dir.listFiles { _, nm -> nm == name  }.firstOrNull() ?: continue
+                for (dir in dirs) {
+                    val file = dir.listFiles { _, nm -> nm == name }.firstOrNull()
+                            ?: continue
                     val text = file.readText()
                     val ans = parseAnswer(text)
                     var score = 0
                     var numberOfBots = 1
                     val iterator = ans.iterator()
-                    while(iterator.hasNext()) {
-                        for(i in 1..numberOfBots) {
+                    while (iterator.hasNext()) {
+                        for (i in 1..numberOfBots) {
                             check(iterator.hasNext())
                             val command = iterator.next()
-                            if(command === CLONE) ++numberOfBots
+                            if (command === CLONE) ++numberOfBots
                         }
                         ++score
                     }

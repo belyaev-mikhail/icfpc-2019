@@ -6,14 +6,15 @@ import ru.spbstu.map.euclidDistance
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Simulator
 import ru.spbstu.sim.TICK
+import ru.spbstu.util.withIdx
 import ru.spbstu.wheels.MutableRef
 import ru.spbstu.wheels.getValue
 import ru.spbstu.wheels.peekFirstOrNull
 
-fun CloningBotSwarm(simref: MutableRef<Simulator>, points: Set<Point>) = sequence {
-    val commands = mutableMapOf<Int, Sequence<Command>>()
+fun CloningBotSwarm(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) = sequence {
+    val commands = mutableMapOf<Int, Sequence<Pair<Int, Command>>>()
 
-    commands[0] = CloningBot(simref, points, 0)
+    commands[idx] = CloningBot(simref, points, idx)
 
     while (true) {
         if (commands.isEmpty()) break
@@ -21,19 +22,19 @@ fun CloningBotSwarm(simref: MutableRef<Simulator>, points: Set<Point>) = sequenc
         val sim by simref
         val activeIdx = 0..sim.currentRobots.lastIndex
 
-        for (idx in activeIdx) {
-            val botCommands = commands.getOrPut(idx) { evenSmarterPriorityAstarBot(simref, points, idx) }
+        for (activeId in activeIdx) {
+            val botCommands = commands.getOrPut(activeId) { theMostSmartestPriorityAstarBot(simref, points, activeId) }
 
             val (cmd, rest) = botCommands.peekFirstOrNull()
 
             if (cmd == null) {
-                commands.remove(idx)
+                commands.remove(activeId)
                 continue
             } else {
-                commands[idx] = rest
+                commands[activeId] = rest
             }
 
-            yield(idx to cmd)
+            yield(cmd!!)
         }
 
         yield(0 to TICK)
@@ -49,18 +50,14 @@ fun CloningBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int) =
 
                 val currentRobot = { sim.currentRobots[idx] }
 
-                val cells = sim.gameMap.cells.filter { it.key in points }
-
-                val closestBooster = cells
-                        .filter {
-                            it.value.booster == BoosterType.CLONING ||
-                                    it.value.booster == BoosterType.MYSTERY &&
-                                    BoosterType.CLONING in sim.boosters
-                        }.sortedBy { currentRobot().pos.euclidDistance(it.key) }
-                        .firstOrNull()
+                val closestBooster = checkNearestBooster(sim, currentRobot(), Double.MAX_VALUE) {
+                    it.booster == BoosterType.CLONING ||
+                            it.booster == BoosterType.MYSTERY &&
+                            BoosterType.CLONING in sim.boosters
+                }
 
                 if (closestBooster != null) {
-                    val local = astarWithoutTurnsWalk(sim, closestBooster.key, idx)
+                    val local = astarWithoutTurnsWalk(sim, closestBooster, idx)
                     yieldAll(local)
 
                     yieldAll(applyBoosters(sim, idx))
@@ -69,4 +66,4 @@ fun CloningBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int) =
                     break
                 }
             }
-        } + evenSmarterPriorityAstarBot(simref, points, idx)
+        }.withIdx(idx) + theMostSmartestPriorityAstarBot(simref, points, idx)
