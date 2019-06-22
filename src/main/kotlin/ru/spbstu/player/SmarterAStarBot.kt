@@ -82,11 +82,13 @@ fun smarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int 
             while (true) {
                 val sim by simref
 
+                yieldAll(applyBoosters(sim, idx))
+
                 val currentRobot = { sim.currentRobots[idx] }
 
                 val target = sim.gameMap
-                        .closestFrom(currentRobot().pos) {
-                            point, cell -> point in points && cell.status == Status.EMPTY
+                        .closestFrom(currentRobot().pos) { point, cell ->
+                            point in points && cell.status == Status.EMPTY
                         }
                         .firstOrNull()
 
@@ -102,23 +104,24 @@ fun evenSmarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: 
             while (true) {
                 val sim by simref
 
-                val currentRobot = { sim.currentRobots[idx] }
-
                 yieldAll(applyBoosters(sim, idx))
+
+                val currentRobot = { sim.currentRobots[idx] }
 
                 val closestBooster = checkNearestBooster(sim, currentRobot()) {
                     it.booster == MANIPULATOR_EXTENSION
                 }
 
                 if (closestBooster != null) {
-                    val local = astarWithoutTurnsWalk(sim, closestBooster, idx)
+                    val local = astarForWalking(sim, closestBooster, idx)
                     yieldAll(local)
                 }
+
                 yieldAll(applyBoosters(sim, idx))
 
                 val target = sim.gameMap
-                        .closestFrom(currentRobot().pos) {
-                            point, cell -> point in points && cell.status == Status.EMPTY
+                        .closestFrom(currentRobot().pos) { point, cell ->
+                            point in points && cell.status == Status.EMPTY
                         }
                         .firstOrNull()
 
@@ -134,13 +137,13 @@ fun theMostSmartestAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, i
             while (true) {
                 val sim by simref
 
-                val currentRobot = { sim.currentRobots[idx] }
-
                 yieldAll(applyBoosters(sim, idx))
 
+                val currentRobot = { sim.currentRobots[idx] }
+
                 val target = sim.gameMap
-                        .closestFrom(currentRobot().pos) {
-                            point, cell -> point in points && cell.status == Status.EMPTY
+                        .closestFrom(currentRobot().pos) { point, cell ->
+                            point in points && cell.status == Status.EMPTY
                         }
                         .firstOrNull()
 
@@ -153,7 +156,7 @@ fun theMostSmartestAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, i
                         it.booster == MANIPULATOR_EXTENSION
                     }
                     if (booster != null) {
-                        val pathToBooster = astarWithoutTurnsWalk(sim, booster, idx)
+                        val pathToBooster = astarForWalking(sim, booster, idx)
                         yieldAll(pathToBooster)
                         break
                     }

@@ -2,7 +2,6 @@ package ru.spbstu.player
 
 import ru.spbstu.map.BoosterType
 import ru.spbstu.map.Point
-import ru.spbstu.map.euclidDistance
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Simulator
 import ru.spbstu.sim.TICK
@@ -57,7 +56,7 @@ fun CloningBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int) =
                 }
 
                 if (closestBooster != null) {
-                    val local = astarWithoutTurnsWalk(sim, closestBooster, idx)
+                    val local = astarForWalking(sim, closestBooster, idx)
                     yieldAll(local)
 
                     yieldAll(applyBoosters(sim, idx))
