@@ -4,10 +4,13 @@ import ru.spbstu.map.BoosterType
 import ru.spbstu.map.Status
 import ru.spbstu.map.euclidDistance
 import ru.spbstu.sim.Simulator
+import ru.spbstu.wheels.MutableRef
+import ru.spbstu.wheels.getValue
 
-fun priorityAstarBot(sim: Simulator) =
+fun priorityAstarBot(simref: MutableRef<Simulator>) =
         sequence {
             while(true) {
+                val sim by simref
                 val target = sim
                         .gameMap
                         .cells
@@ -24,9 +27,10 @@ fun priorityAstarBot(sim: Simulator) =
         }
 
 
-fun smarterPriorityAstarBot(sim: Simulator) =
+fun smarterPriorityAstarBot(simref: MutableRef<Simulator>) =
         sequence {
             while (true) {
+                val sim by simref
                 val target = sim
                         .gameMap
                         .cells
@@ -45,9 +49,10 @@ fun smarterPriorityAstarBot(sim: Simulator) =
         }
 
 
-fun evenSmarterPriorityAstarBot(sim: Simulator) =
+fun evenSmarterPriorityAstarBot(simref: MutableRef<Simulator>) =
         sequence {
             while (true) {
+                val sim by simref
                 yieldAll(applyBoosters(sim))
 
                 val closestBooster = sim.gameMap
