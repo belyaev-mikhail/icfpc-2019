@@ -11,15 +11,16 @@ import ru.spbstu.map.Point
 import ru.spbstu.parse.parseAnswer
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.*
-import ru.spbstu.sim.*
+import ru.spbstu.sim.Command
+import ru.spbstu.sim.Robot
+import ru.spbstu.sim.SimFrame
+import ru.spbstu.sim.Simulator
 import ru.spbstu.util.awaitAll
-import ru.spbstu.wheels.*
 import ru.spbstu.util.log
 import ru.spbstu.util.toSolution
 import ru.spbstu.util.withAutoTick
 import ru.spbstu.wheels.*
 import java.io.File
-import kotlin.reflect.jvm.reflect
 
 object Main : CliktCommand() {
     val useAbsoluteMapPath: Boolean by option().flag(default = false)
@@ -41,22 +42,24 @@ object Main : CliktCommand() {
 
         val best = run {
             val paths = listOf(
-                    ::astarBot.withAutoTick(),
-                    ::smarterAstarBot.withAutoTick(),
-                    ::evenSmarterAstarBot.withAutoTick(),
-                    ::priorityAstarBot.withAutoTick(),
-                    ::smarterPriorityAstarBot.withAutoTick(),
-                    ::evenSmarterPriorityAstarBot.withAutoTick(),
-                    ::theMostSmartestPriorityAstarBot.withAutoTick(),
-                    SuperSmarterAStarBot::run.withAutoTick(),
-                    ::CloningBotSwarm)
+                    "astarBot" to ::astarBot.withAutoTick(),
+                    "smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
+                    "evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
+                    "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
+                    "smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
+                    "evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
+                    "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
+                    "SuperSmarterAStarBot" to SuperSmarterAStarBot::run.withAutoTick(),
+                    "CloningBotSwarm" to ::CloningBotSwarm)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 
-                        val name = it.reflect()!!.name
+                        val name = it.first
+                        val bot = it.second
+
                         async {
-                            val res = handleMapSingle(sim, it)
+                            val res = handleMapSingle(sim, bot)
                             File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
                                 it.write(res.first.toSolution())
                             }
@@ -135,12 +138,14 @@ object Main : CliktCommand() {
             return
         }
 
+        val pool = newFixedThreadPoolContext(threads, "Pool")
+
         if (useAbsoluteMapPath) {
-            runBlocking { handleMap(map) }
+            runBlocking(pool) { handleMap(map) }
         } else if (map != "all") {
-            runBlocking { handleMap("docs/tasks/prob-$map.desc") }
+            runBlocking(pool) { handleMap("docs/tasks/prob-$map.desc") }
         } else {
-            runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
+            runBlocking(pool) {
                 File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
                     async { handleMap(it.absolutePath) }
                 }.awaitAll()

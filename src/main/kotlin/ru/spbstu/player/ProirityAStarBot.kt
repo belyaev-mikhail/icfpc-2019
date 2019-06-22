@@ -35,6 +35,8 @@ fun smarterPriorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, i
             while (true) {
                 val sim by simref
 
+                yieldAll(applyBoosters(sim, idx))
+
                 val currentRobot = { sim.currentRobots[idx] }
 
                 val target = sim.gameMap
