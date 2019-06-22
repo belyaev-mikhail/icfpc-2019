@@ -151,7 +151,7 @@ object Main : CliktCommand() {
             runBlocking(pool) { handleMap("docs/tasks/prob-$filename.desc") }
         } else {
             runBlocking(pool) {
-                File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.sorted().take(100).map {
+                File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
                     async { handleMap(it.absolutePath) }
                 }.awaitAll()
             }
