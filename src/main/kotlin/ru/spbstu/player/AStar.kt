@@ -79,7 +79,7 @@ fun astarWalk(sim: Simulator, target: Point, idx: Int = 0): List<Command> {
     )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
 }
 
-fun astarWithoutTurnsWalk(sim: Simulator, target: Point, idx: Int = 0): List<Command> {
+fun astarForWalking(sim: Simulator, target: Point, idx: Int = 0): List<Command> {
     val robot = { sim.currentRobots[idx] }
 
     check(!sim.gameMap[target].status.isWall)
