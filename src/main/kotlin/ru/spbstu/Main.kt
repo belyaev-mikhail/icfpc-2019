@@ -30,10 +30,11 @@ object Main : CliktCommand() {
 //    val count: Int by option(help = "Number of greetings").int().default(1)
 //    val name: String? by option(help = "The person to greet")
 
-    fun handleMap(file: String) {
+    suspend fun CoroutineScope.handleMap(file: String) {
         val data = File(file).let { parseFile(it.name, it.readText()) }
+        log.debug("Running portfolio for $file")
 
-        val path = runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
+        val path = run {
             val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot,
                     ::priorityAstarBot,::smarterPriorityAstarBot, ::evenSmarterPriorityAstarBot,
                     ::superSmarterAstarBot)
@@ -84,11 +85,11 @@ object Main : CliktCommand() {
 
     override fun run() {
         if (map != "all") {
-            handleMap("docs/tasks/prob-$map.desc")
+            runBlocking { handleMap("docs/tasks/prob-$map.desc") }
         } else {
             runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
                 val asyncs = File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
-                    launch { handleMap(it.absolutePath) }
+                    async { handleMap(it.absolutePath) }
                 }
 
                 while (asyncs.any { it.isActive }) {
