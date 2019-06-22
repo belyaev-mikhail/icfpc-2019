@@ -184,6 +184,7 @@ internal constructor(val ignore: Any?,
                      val gameMap: GameMap,
                      val time: Int = 0,
                      val boosters: Map<BoosterType, Int> = mapOf(),
+                     val freshBoosters: Map<BoosterType, Int> = mapOf(),
                      val teleports: Set<Point> = setOf()) {
 
     fun die(idx: Int, msg: String): Nothing = throw SimulatorException(msg, currentRobots[idx], gameMap)
@@ -195,10 +196,7 @@ internal constructor(val ignore: Any?,
 
         newGameMap = newGameMap.set(
                 currentRobots[idx].pos,
-                oldBotCell.copy(
-                        status = WRAP,
-                        booster = if (oldBotCell.booster == MYSTERY) MYSTERY else null
-                )
+                oldBotCell.copy(status = WRAP)
         )
 
         for (mp in currentRobots[idx].manipulatorPos) {
@@ -226,18 +224,35 @@ internal constructor(val ignore: Any?,
 
         // nested == true means we're processing second part of fast wheels
 
+        var newGameMap = gameMap
         var newCurrentRobot = currentRobots[idx]
         var newTeleports = teleports
         var newBoosters = boosters
+        var newFreshBoosters = freshBoosters
         var newTime = time
 
         var shouldClone = false
+
+        val (_, newBooster) = newGameMap[newCurrentRobot.pos]
+
+        when (newBooster) {
+            null, MYSTERY -> {
+                // Do nothing
+            }
+            else -> {
+                newFreshBoosters = newFreshBoosters.inc(newBooster)
+                newGameMap = newGameMap.set(
+                        newCurrentRobot.pos,
+                        Cell.Wrap
+                )
+            }
+        }
 
         when (cmd) {
             is MoveCommand -> {
                 val newPos = newCurrentRobot.pos.moveTo(cmd.dir)
 
-                val (newCell, newBooster) = gameMap[newPos]
+                val (newCell, _) = gameMap[newPos]
 
                 when (newCell) {
                     EMPTY, WRAP -> {
@@ -251,15 +266,6 @@ internal constructor(val ignore: Any?,
                     SUPERWALL -> {
                         if (nested) return this
                         die(idx, "Cannot move through outer wall")
-                    }
-                }
-
-                when (newBooster) {
-                    null, MYSTERY -> {
-                        // Do nothing
-                    }
-                    else -> {
-                        newBoosters = newBoosters.inc(newBooster)
                     }
                 }
 
@@ -338,6 +344,16 @@ internal constructor(val ignore: Any?,
 
             is TICK -> {
                 newTime += 1
+
+                for ((k, v) in newBoosters) {
+                    newBoosters = newBoosters + (k to v + (newFreshBoosters[k] ?: 0))
+                }
+                for ((k, v) in newFreshBoosters) {
+                    if (k in newBoosters) continue
+                    newBoosters = newBoosters + (k to v)
+                }
+
+                newFreshBoosters = emptyMap()
             }
         }
 
@@ -345,8 +361,10 @@ internal constructor(val ignore: Any?,
         if (shouldClone) newCurrentRobots = newCurrentRobots.append(Robot(newCurrentRobot.pos))
 
         var newSim = this.copy(
+                gameMap = newGameMap,
                 currentRobots = newCurrentRobots,
                 boosters = newBoosters,
+                freshBoosters = newFreshBoosters,
                 teleports = newTeleports,
                 time = newTime
         ).repaint(idx)

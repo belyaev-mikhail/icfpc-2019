@@ -34,10 +34,8 @@ object Main : CliktCommand() {
         val data = File(file).let { parseFile(it.name, it.readText()) }
         log.debug("Running portfolio for $file")
 
-        val path = run {
-            val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot,
-                    ::priorityAstarBot,::smarterPriorityAstarBot, ::evenSmarterPriorityAstarBot,
-                    ::superSmarterAstarBot)
+        val best = run {
+            val paths = listOf(::CloningBotSwarm)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
@@ -49,18 +47,25 @@ object Main : CliktCommand() {
                 yield()
             }
 
-            paths.map { it.first to it.second.await() }.minBy { it.second.count() }
+            paths.map { it.first to it.second.await() }.minBy { it.second.second }
         }
 
+        val name = best?.first
+        val score = best?.second?.second
+        val paths = best?.second?.first?.groupBy { it.first }
+
+        val sol = paths?.keys?.sorted()?.map { paths[it]?.map { it.second }?.joinToString("") }
+                ?.joinToString("#")
+
         File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
-            log.debug("Solution for file $file: ${path?.second?.joinToString("")}")
-            log.debug("Solution score for file $file: ${path?.second?.count()}")
-            log.debug("Best solution for file $file is ${path?.first}")
-            it.write(path?.second?.map { it.toString() }?.joinToString(""))
+            log.debug("Solution for file $file: $sol")
+            log.debug("Solution score for file $file: $score")
+            log.debug("Best solution for file $file is $name")
+            it.write(sol)
         }
     }
 
-    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>) -> Sequence<Command>): Sequence<Command> {
+    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>) -> Sequence<Pair<Int, Command>>): Pair<Sequence<Pair<Int, Command>>, Int> {
         val mutSim = ref(isim)
         var sim by mutSim
         val path = bot(mutSim, sim.gameMap.cells.keys).memoize()
@@ -68,7 +73,7 @@ object Main : CliktCommand() {
         if (gui) {
             val frame = SimFrame(guiCellSize) { mutSim.value }
             for (command in path) {
-                sim = sim.apply(command)
+                sim = sim.apply(command.first, command.second)
                 delay((1000.0 / speed).toLong())
                 frame.repaint()
             }
@@ -76,11 +81,11 @@ object Main : CliktCommand() {
             frame.dispose()
         } else {
             for (command in path) {
-                sim = sim.apply(command)
+                sim = sim.apply(command.first, command.second)
             }
         }
 
-        return path
+        return path to sim.time
     }
 
     override fun run() {

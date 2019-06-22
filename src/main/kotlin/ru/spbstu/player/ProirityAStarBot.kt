@@ -10,9 +10,9 @@ import ru.spbstu.wheels.getValue
 
 fun priorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
         sequence {
-            while(true) {
+            while (true) {
                 val sim by simref
-                val cells = sim.gameMap.cells.filter { it.key in points}
+                val cells = sim.gameMap.cells.filter { it.key in points }
                 val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
@@ -31,7 +31,7 @@ fun smarterPriorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
         sequence {
             while (true) {
                 val sim by simref
-                val cells = sim.gameMap.cells.filter { it.key in points}
+                val cells = sim.gameMap.cells.filter { it.key in points }
                 val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
@@ -48,34 +48,38 @@ fun smarterPriorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
         }
 
 
-fun evenSmarterPriorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
+fun evenSmarterPriorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int) =
         sequence {
             while (true) {
                 val sim by simref
-                yieldAll(applyBoosters(sim))
 
-                val cells = sim.gameMap.cells.filter { it.key in points}
+                yieldAll(applyBoosters(sim, idx))
+
+                val currentRobot = { sim.currentRobots[idx] }
+
+                val cells = sim.gameMap.cells.filter { it.key in points }
 
                 val closestBooster = cells
                         .filter { it.value.booster != null }
                         .filter { it.value.booster == BoosterType.MANIPULATOR_EXTENSION }
-                        .minBy { sim.currentRobot.pos.euclidDistance(it.key) }
+                        .minBy { currentRobot().pos.euclidDistance(it.key) }
 
-                if (closestBooster != null && sim.currentRobot.pos.euclidDistance(closestBooster.key) < 5.0) {
-                    val local = astarWithoutTurnsWalk(sim, closestBooster.key)
+                if (closestBooster != null && currentRobot().pos.euclidDistance(closestBooster.key) < 5.0) {
+                    val local = astarWithoutTurnsWalk(sim, closestBooster.key, idx)
                     yieldAll(local)
                 }
-                yieldAll(applyBoosters(sim))
+
+                yieldAll(applyBoosters(sim, idx))
 
                 val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
-                            sim.currentRobot.pos.euclidDistance(it.key)
+                            currentRobot().pos.euclidDistance(it.key)
                         }
 
                 target ?: break
 
-                val local = visibleAstarWalk(sim, target.key)
+                val local = visibleAstarWalk(sim, target.key, idx)
                 yieldAll(local)
             }
         }
