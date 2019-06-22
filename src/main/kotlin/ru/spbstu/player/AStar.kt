@@ -125,3 +125,32 @@ fun visibleAstarWalk(sim: Simulator, target: Point, idx: Int = 0): List<Command>
             }
     )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
 }
+
+fun enclosedAstarWalk(sim: Simulator, target: Point, idx: Int = 0): List<Command> {
+    val robot = { sim.currentRobots[idx] }
+
+    check(!sim.gameMap[target].status.isWall)
+
+    return aStarSearch(
+            RobotAndCommand(robot(), USE_DRILL),
+            heur = { (robot, _) ->
+                robot.manipulatorPos
+                        .map {
+                            it.manhattanDistance(target).toDouble()
+                            + if (sim.gameMap.isVisible(robot.pos, it)) 0.1 else 0.0
+                            + if (sim.gameMap.inEnclosedArea(robot.pos)) 1.0 else 0.0
+                        }
+                        .min()
+                        ?: Double.MAX_VALUE
+            },
+            goal = { (robot, _) ->
+                robot.manipulatorPos.contains(target) && sim.gameMap.isVisible(robot.pos, target)
+            },
+            neighbours = { (me, _) ->
+                val commands = listOf(TURN_CW, TURN_CCW, MOVE_UP, MOVE_RIGHT, MOVE_LEFT, MOVE_DOWN)
+                commands.map { RobotAndCommand(me.doCommand(it), it) }
+                        .asSequence()
+                        .filter { !sim.gameMap[it.v0.pos].status.isWall }
+            }
+    )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
+}

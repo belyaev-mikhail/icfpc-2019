@@ -34,6 +34,22 @@ fun simulatingAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
         neighbours = { it.neighbors.asSequence() }
 )?.dropLast(1).orEmpty().map { it.command }.reversed()
 
+fun simulatingEnclosedAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
+        SimulatorAndCommand(sim, NOOP, idx),
+        heur = { e ->
+            e.robot.manipulatorPos
+                    .map {
+                        it.manhattanDistance(target).toDouble()
+                        +if (e.sim.gameMap.isVisible(e.robot.pos, it)) 0.1 else 0.0
+                        +if (e.sim.gameMap.inEnclosedArea(e.robot.pos)) 1.0 else 0.0
+                    }
+                    .min()
+                    ?: Double.MAX_VALUE
+        },
+        goal = { target in it.sim.currentRobots[it.idx].manipulatorPos && it.sim.gameMap.isVisible(it.robot.pos, target) },
+        neighbours = { it.neighbors.asSequence() }
+)?.dropLast(1).orEmpty().map { it.command }.reversed()
+
 fun simulatingAStarForWalking(sim: Simulator, target: Point, idx: Int) = aStarSearch(
         SimulatorAndCommand(sim, NOOP, idx),
         heur = { e ->
@@ -108,14 +124,47 @@ fun theMostSmartestPrioritySimulatingAstarBot(simref: MutableRef<Simulator>, poi
                 yieldAll(applyBoosters(sim, idx))
 
                 val target = sim.gameMap
-                        .closestFrom(currentRobot().pos) {
-                            point, cell -> point in points && cell.status == Status.EMPTY
+                        .closestFrom(currentRobot().pos) { point, cell ->
+                            point in points && cell.status == Status.EMPTY
                         }
                         .firstOrNull()
 
                 target ?: break
 
                 val local = simulatingAStar(sim, target.first, idx)
+                for (command in local) {
+                    val booster = checkNearestBooster(sim, currentRobot()) {
+                        it.booster == BoosterType.MANIPULATOR_EXTENSION || it.booster == BoosterType.FAST_WHEELS
+                    }
+                    if (booster != null) {
+                        val pathToBooster = simulatingAStarForWalking(sim, booster, idx)
+                        yieldAll(pathToBooster)
+                        break
+                    }
+                    yield(command)
+                }
+            }
+        }.withIdx(idx)
+
+fun theMostSmartestPrioritySimulatingEnclosedAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) =
+        sequence {
+            while (true) {
+                val sim by simref
+                val currentRobot = { sim.currentRobots[idx] }
+
+                yieldAll(applyBoosters(sim, idx))
+
+                val target = sim.gameMap
+                        .closestFrom(currentRobot().pos) {
+                            point, cell -> point in points && cell.status == Status.EMPTY
+                        }
+                        .take(20)
+                        .sortedBy { sim.gameMap.enclosedArea(it.first, 10) }
+                        .firstOrNull()
+
+                target ?: break
+
+                val local = visibleAstarWalk(sim, target.first, idx)
                 for (command in local) {
                     val booster = checkNearestBooster(sim, currentRobot()) {
                         it.booster == BoosterType.MANIPULATOR_EXTENSION || it.booster == BoosterType.FAST_WHEELS

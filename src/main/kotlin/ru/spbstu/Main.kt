@@ -43,6 +43,7 @@ object Main : CliktCommand() {
         val best = run {
             val paths = listOf(
                     "astarBot" to ::astarBot.withAutoTick(),
+                    //"enclosedAstarBot" to ::enclosedAstarBot.withAutoTick(),
                     "smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
                     "evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
                     "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
@@ -52,6 +53,7 @@ object Main : CliktCommand() {
                     "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
                     "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
                     "SuperSmarterAStarBot" to SuperSmarterAStarBot::run.withAutoTick(),
+                    //"theMostSmartestPrioritySimulatingEnclosedAstarBot" to ::theMostSmartestPrioritySimulatingEnclosedAstarBot.withAutoTick(),
                     "CloningBotSwarm" to ::CloningBotSwarm)
                     .map {
                         val map = GameMap(data)
@@ -145,10 +147,11 @@ object Main : CliktCommand() {
         if (useAbsoluteMapPath) {
             runBlocking(pool) { handleMap(map) }
         } else if (map != "all") {
-            runBlocking(pool) { handleMap("docs/tasks/prob-$map.desc") }
+            val filename = "000$map".takeLast(3) // this is fucked up, but i'm tired of FileNotFoundException
+            runBlocking(pool) { handleMap("docs/tasks/prob-$filename.desc") }
         } else {
             runBlocking(pool) {
-                File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
+                File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.sorted().take(100).map {
                     async { handleMap(it.absolutePath) }
                 }.awaitAll()
             }
