@@ -1,5 +1,7 @@
 package ru.spbstu.util
 
+import kotlinx.coroutines.Deferred
+
 fun <K> MutableMap<K, Int>.inc(key: K) {
     val value = this[key] ?: 0
 
@@ -35,3 +37,5 @@ fun <K> Map<K, Int>.dec(key: K): Map<K, Int> {
         else -> throw ArithmeticException("Cannot dec $key for $this")
     }
 }
+
+suspend fun <T> List<Deferred<T>>.awaitAll() = kotlinx.coroutines.awaitAll(*this.toTypedArray())

@@ -12,6 +12,7 @@ import ru.spbstu.parse.parseAnswer
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.*
 import ru.spbstu.sim.*
+import ru.spbstu.util.awaitAll
 import ru.spbstu.wheels.*
 import ru.spbstu.util.log
 import ru.spbstu.wheels.memoize
@@ -42,20 +43,16 @@ object Main : CliktCommand() {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 
-                         it.name to async {
+                        async {
                             val res = handleMapSingle(sim, it)
-                            File(File(it.name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
+                            File(File(File("candidates"), it.name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
                                 it.write(res.map { it.toString() }.joinToString(""))
                             }
-                            res
+                            it.name to res
                         }
-                    }
+                    }.awaitAll()
 
-            while (paths.any { it.second.isActive }) {
-                yield()
-            }
-
-            paths.map { it.first to it.second.await() }.minBy { it.second.count() }
+            paths.minBy { it.second.count() }
         }
 
         File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
@@ -133,13 +130,9 @@ object Main : CliktCommand() {
             runBlocking { handleMap("docs/tasks/prob-$map.desc") }
         } else {
             runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
-                val asyncs = File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
+                File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
                     async { handleMap(it.absolutePath) }
-                }
-
-                while (asyncs.any { it.isActive }) {
-                    yield()
-                }
+                }.awaitAll()
             }
         }
     }
