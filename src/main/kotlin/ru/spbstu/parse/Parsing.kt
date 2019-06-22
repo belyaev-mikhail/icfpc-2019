@@ -35,7 +35,30 @@ fun parseFile(name: String, data: String): Task {
     )
 }
 
-fun parseAnswer(data: String): List<Command> {
+fun parseAnswer(data: String): List<List<Command>> {
+    val newData = data.split("#").map { it.trim() }
+    val newRes = mutableListOf<StringBuilder>()
+    val botNum = data.split("#").size
+    repeat(botNum) { newRes.add(StringBuilder()) }
+    var offsets = mutableListOf(0)
+    while (!offsets.mapIndexed { index, i -> index to i }.all { newData[it.first].length <= it.second }) {
+        for (j in offsets.size until botNum) {
+            newRes[j].append('N')
+        }
+        for (i in 0 until offsets.size) {
+            if (offsets[i] >= newData[i].length) continue
+            if (newData[i][offsets[i]] == 'C') {
+                offsets.add(-1)
+            }
+        }
+        offsets = offsets.map { it + 1 }.toMutableList()
+    }
+    newRes.mapIndexed { ind, el -> el.append(newData[ind]) }
+    return newRes.map { parseAnswer1(it.toString()) }
+}
+
+
+private fun parseAnswer1(data: String): List<Command> {
     val splData = data.split(Regex("[() ]"))
     val result = mutableListOf<Command>()
     splData.mapIndexed { index, s ->
@@ -53,6 +76,8 @@ fun parseAnswer(data: String): List<Command> {
                 'F' -> USE_FAST_WHEELS
                 'L' -> USE_DRILL
                 'T' -> SHIFT_TO(parsePoint(splData[index + 1]))
+                'C' -> CLONE
+                'N' -> NOT_EXIST
                 else -> null
             }
         }.filterNotNull().forEach { result.add(it) }
