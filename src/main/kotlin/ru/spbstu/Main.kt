@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import kotlinx.coroutines.*
 import ru.spbstu.map.GameMap
+import ru.spbstu.map.Point
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.*
 import ru.spbstu.sim.Command
@@ -58,10 +59,10 @@ object Main : CliktCommand() {
         }
     }
 
-    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>) -> Sequence<Command>): Sequence<Command> {
+    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>) -> Sequence<Command>): Sequence<Command> {
         val mutSim = ref(isim)
         var sim by mutSim
-        val path = bot(mutSim).memoize()
+        val path = bot(mutSim, sim.gameMap.cells.keys).memoize()
 
         if (gui) {
             val frame = SimFrame(guiCellSize) { mutSim.value }

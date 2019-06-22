@@ -186,7 +186,7 @@ fun getBlobsOrdered(initial: Node, allNodes: List<Node>, edges: List<Edge>): Lis
     return nodes.map { blobs[it.id]!! }
 }
 
-fun superSmarterAstarBot(simref: MutableRef<Simulator>) =
+fun superSmarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
         sequence {
             val sim by simref
 

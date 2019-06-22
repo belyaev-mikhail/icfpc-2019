@@ -1,19 +1,19 @@
 package ru.spbstu.player
 
 import ru.spbstu.map.BoosterType
+import ru.spbstu.map.Point
 import ru.spbstu.map.Status
 import ru.spbstu.map.euclidDistance
 import ru.spbstu.sim.Simulator
 import ru.spbstu.wheels.MutableRef
 import ru.spbstu.wheels.getValue
 
-fun priorityAstarBot(simref: MutableRef<Simulator>) =
+fun priorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
         sequence {
             while(true) {
                 val sim by simref
-                val target = sim
-                        .gameMap
-                        .cells
+                val cells = sim.gameMap.cells.filter { it.key in points}
+                val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
                             sim.currentRobot.pos.euclidDistance(it.key)
@@ -27,13 +27,12 @@ fun priorityAstarBot(simref: MutableRef<Simulator>) =
         }
 
 
-fun smarterPriorityAstarBot(simref: MutableRef<Simulator>) =
+fun smarterPriorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
         sequence {
             while (true) {
                 val sim by simref
-                val target = sim
-                        .gameMap
-                        .cells
+                val cells = sim.gameMap.cells.filter { it.key in points}
+                val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
                             sim.currentRobot.pos.euclidDistance(it.key)
@@ -49,14 +48,15 @@ fun smarterPriorityAstarBot(simref: MutableRef<Simulator>) =
         }
 
 
-fun evenSmarterPriorityAstarBot(simref: MutableRef<Simulator>) =
+fun evenSmarterPriorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
         sequence {
             while (true) {
                 val sim by simref
                 yieldAll(applyBoosters(sim))
 
-                val closestBooster = sim.gameMap
-                        .cells
+                val cells = sim.gameMap.cells.filter { it.key in points}
+
+                val closestBooster = cells
                         .filter { it.value.booster != null }
                         .filter { it.value.booster == BoosterType.MANIPULATOR_EXTENSION }
                         .minBy { sim.currentRobot.pos.euclidDistance(it.key) }
@@ -67,13 +67,11 @@ fun evenSmarterPriorityAstarBot(simref: MutableRef<Simulator>) =
                 }
                 yieldAll(applyBoosters(sim))
 
-                val target = sim.gameMap
-                        .cells
+                val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
                             sim.currentRobot.pos.euclidDistance(it.key)
                         }
-
 
                 target ?: break
 
