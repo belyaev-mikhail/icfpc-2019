@@ -37,6 +37,7 @@ object Main : CliktCommand() {
         val path = run {
             val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot,
                     ::priorityAstarBot,::smarterPriorityAstarBot, ::evenSmarterPriorityAstarBot,
+                    ::theMostSmartestAstarBot, ::theMostSmartestPriorityAstarBot,
                     ::superSmarterAstarBot)
                     .map {
                         val map = GameMap(data)
