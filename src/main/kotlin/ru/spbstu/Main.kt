@@ -13,7 +13,6 @@ import ru.spbstu.parse.parseFile
 import ru.spbstu.player.*
 import ru.spbstu.sim.*
 import ru.spbstu.util.awaitAll
-import ru.spbstu.wheels.*
 import ru.spbstu.util.log
 import ru.spbstu.util.toSolution
 import ru.spbstu.util.withAutoTick
@@ -138,7 +137,9 @@ object Main : CliktCommand() {
         if (useAbsoluteMapPath) {
             runBlocking { handleMap(map) }
         } else if (map != "all") {
-            runBlocking { handleMap("docs/tasks/prob-$map.desc") }
+            runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
+                handleMap("docs/tasks/prob-$map.desc")
+            }
         } else {
             runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
                 File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {

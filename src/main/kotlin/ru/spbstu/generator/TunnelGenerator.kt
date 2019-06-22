@@ -4,7 +4,7 @@ import ru.spbstu.map.*
 import ru.spbstu.player.aStarSearch
 
 
-class TunnelGenerator(private val parameters: Parameters) {
+class  TunnelGenerator(private val parameters: Parameters) {
     enum class Cell { WALL, PATH }
 
     private val matrix = HashMap<Point, Cell>()
