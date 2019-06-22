@@ -9,12 +9,14 @@ import ru.spbstu.map.Point
 import ru.spbstu.map.dumpMap
 import java.io.File
 
-object Main : CliktCommand() {
+object GeneratorMain : CliktCommand() {
     val input: String by option().default("sample/puzzle.cond")
     val output: String by option().default("sample/task.desc")
     val gui: Boolean by option().flag(default = false)
 
-    override fun run() {
+    override fun run() = generate(input, output)
+
+   fun generate(input: String, output: String) {
         val rawParameters = File(input).readText()
         val parameters = Parameters.read(rawParameters)
         val map = TunnelGenerator(parameters).generate()
@@ -22,10 +24,10 @@ object Main : CliktCommand() {
         val bonuses = BusterGenerator(map, parameters).generate()
 
         val totalMap = mutableMapOf<Point, Cell>()
-        for(x in 0..parameters.mapSize) {
-            for(y in 0..parameters.mapSize) {
+        for (x in 0..parameters.mapSize) {
+            for (y in 0..parameters.mapSize) {
                 val point = Point(x, y)
-                if(point in map) totalMap[point] = Cell.Wall
+                if (point in map) totalMap[point] = Cell.Wall
                 else totalMap[point] = Cell.Empty
             }
         }
@@ -51,4 +53,4 @@ object Main : CliktCommand() {
     }
 }
 
-fun main(args: Array<String>) = Main.main(args)
+fun main(args: Array<String>) = GeneratorMain.main(args)
