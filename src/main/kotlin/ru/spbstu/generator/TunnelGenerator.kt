@@ -34,6 +34,14 @@ class TunnelGenerator(private val parameters: Parameters) {
         points.forEach { matrix[it] = Cell.WALL }
     }
 
+    private fun appendCorners(corners: Int) {
+        println(corners)
+    }
+
+    private fun removeCorners(corners: Int) {
+
+    }
+
     fun generate(): HashMap<Point, Cell> {
         parameters.pathsPoints.forEach { matrix[it] = Cell.PATH }
         for (i in -1..parameters.mapSize) {
@@ -45,6 +53,29 @@ class TunnelGenerator(private val parameters: Parameters) {
         parameters.wallsPoints.forEach {
             generateWalls(it)
         }
+        val corners = countCorners()
+        if (corners > parameters.verticesMax) {
+            removeCorners(corners - parameters.verticesMax)
+        } else if (corners < parameters.verticesMin) {
+            appendCorners(parameters.verticesMin - corners)
+        }
+        println(parameters.verticesMin to parameters.verticesMax to countCorners())
         return matrix
     }
+
+    private fun countCorners() = matrix.filter { it.value == Cell.WALL }.map { it.key }.count { isCorner(it) }
+
+    private fun isOuterCorner(point: Point) = isWall(point) &&
+            (!isWall(point.up()) && !isWall(point.left()) && !isWall(point.up().left()) ||
+                    !isWall(point.up()) && !isWall(point.right()) && !isWall(point.up().right()) ||
+                    !isWall(point.down()) && !isWall(point.left()) && !isWall(point.down().left()) ||
+                    !isWall(point.down()) && !isWall(point.right()) && !isWall(point.down().right()))
+
+    private fun isInnerCorner(point: Point) = isWall(point) &&
+            (isWall(point.up()) && isWall(point.left()) && !isWall(point.up().left()) ||
+                    isWall(point.up()) && isWall(point.right()) && !isWall(point.up().right()) ||
+                    isWall(point.down()) && isWall(point.left()) && !isWall(point.down().left()) ||
+                    isWall(point.down()) && isWall(point.right()) && !isWall(point.down().right()))
+
+    private fun isCorner(point: Point) = isOuterCorner(point) || isInnerCorner(point)
 }
