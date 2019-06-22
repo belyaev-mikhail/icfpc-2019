@@ -16,11 +16,13 @@ import ru.spbstu.sim.Robot
 import ru.spbstu.sim.SimFrame
 import ru.spbstu.sim.Simulator
 import ru.spbstu.util.awaitAll
+import ru.spbstu.wheels.*
 import ru.spbstu.util.log
 import ru.spbstu.util.toSolution
 import ru.spbstu.util.withAutoTick
 import ru.spbstu.wheels.*
 import java.io.File
+import kotlin.reflect.jvm.reflect
 
 object Main : CliktCommand() {
     val useAbsoluteMapPath: Boolean by option().flag(default = false)

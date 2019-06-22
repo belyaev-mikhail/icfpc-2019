@@ -9,9 +9,11 @@ import javax.swing.JFrame
 
 class Test(val map: Map<Point, TunnelGenerator.Cell>, val parameters: Parameters) : JFrame() {
     private val SIZE = 10
+    private val SHIFT = SIZE * 10
 
     init {
-        this.preferredSize = Dimension(parameters.mapSize * SIZE, parameters.mapSize * SIZE)
+        val size = parameters.mapSize * SIZE + 2 * SHIFT
+        this.preferredSize = Dimension(size, size)
         this.pack()
         this.isVisible = true
         this.defaultCloseOperation = EXIT_ON_CLOSE
@@ -21,24 +23,24 @@ class Test(val map: Map<Point, TunnelGenerator.Cell>, val parameters: Parameters
         super.paint(g)
 
         g.color = Color.WHITE
-        g.fillRect(0, 0, parameters.mapSize * SIZE, parameters.mapSize * SIZE)
+        g.fillRect(SHIFT, SHIFT, parameters.mapSize * SIZE, parameters.mapSize * SIZE)
         map.forEach { (it, cell) ->
             g.color = when (cell) {
                 TunnelGenerator.Cell.WALL -> Color.BLACK
                 TunnelGenerator.Cell.PATH -> Color.WHITE
             }
-            g.fillRect(it.v0 * SIZE, it.v1 * SIZE, SIZE, SIZE)
+            g.fillRect(SHIFT + it.v0 * SIZE, SHIFT + it.v1 * SIZE, SIZE, SIZE)
         }
         parameters.wallsPoints.forEach {
-            g.fillRect(it.v0 * SIZE, it.v1 * SIZE, SIZE, SIZE)
+            g.fillRect(SHIFT + it.v0 * SIZE, SHIFT + it.v1 * SIZE, SIZE, SIZE)
         }
         g.color = Color.RED
         parameters.pathsPoints.forEach {
-            g.fillRect(it.v0 * SIZE, it.v1 * SIZE, SIZE, SIZE)
+            g.fillRect(SHIFT + it.v0 * SIZE, SHIFT + it.v1 * SIZE, SIZE, SIZE)
         }
         g.color = Color.BLUE
         parameters.wallsPoints.forEach {
-            g.fillRect(it.v0 * SIZE, it.v1 * SIZE, SIZE, SIZE)
+            g.fillRect(SHIFT + it.v0 * SIZE, SHIFT + it.v1 * SIZE, SIZE, SIZE)
         }
     }
 }
