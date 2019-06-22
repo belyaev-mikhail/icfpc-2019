@@ -85,6 +85,10 @@ object CLONE : Command() {
     override fun toString(): String = "C"
 }
 
+object NOT_EXIST: Command() {
+    override fun toString(): String = "N"
+}
+
 enum class Orientation(val dx: Int, val dy: Int) {
     UP(0, 1), DOWN(0, -1), LEFT(-1, 0), RIGHT(1, 0);
 
