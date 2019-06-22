@@ -3,7 +3,6 @@ package ru.spbstu.player
 import ru.spbstu.map.BoosterType
 import ru.spbstu.map.Point
 import ru.spbstu.map.Status
-import ru.spbstu.map.euclidDistance
 import ru.spbstu.sim.Simulator
 import ru.spbstu.util.withIdx
 import ru.spbstu.wheels.MutableRef
@@ -34,6 +33,8 @@ fun smarterPriorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, i
         sequence {
             while (true) {
                 val sim by simref
+
+                yieldAll(applyBoosters(sim, idx))
 
                 val currentRobot = { sim.currentRobots[idx] }
 
@@ -67,7 +68,7 @@ fun evenSmarterPriorityAstarBot(simref: MutableRef<Simulator>, points: Set<Point
                 }
 
                 if (closestBooster != null) {
-                    val local = astarWithoutTurnsWalk(sim, closestBooster, idx)
+                    val local = astarForWalking(sim, closestBooster, idx)
                     yieldAll(local)
                 }
 
@@ -109,7 +110,7 @@ fun theMostSmartestPriorityAstarBot(simref: MutableRef<Simulator>, points: Set<P
                         it.booster == BoosterType.MANIPULATOR_EXTENSION
                     }
                     if (booster != null) {
-                        val pathToBooster = astarWithoutTurnsWalk(sim, booster, idx)
+                        val pathToBooster = astarForWalking(sim, booster, idx)
                         yieldAll(pathToBooster)
                         break
                     }

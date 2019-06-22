@@ -5,7 +5,7 @@ import ru.spbstu.map.*
 import ru.spbstu.player.aStarSearch
 
 
-class TunnelGenerator(private val parameters: Parameters) {
+class  TunnelGenerator(private val parameters: Parameters) {
     enum class Cell { WALL, PATH }
 
     enum class FragmentType {
