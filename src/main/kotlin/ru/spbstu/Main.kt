@@ -8,12 +8,10 @@ import com.github.ajalt.clikt.parameters.types.int
 import kotlinx.coroutines.*
 import ru.spbstu.map.GameMap
 import ru.spbstu.map.Point
+import ru.spbstu.parse.parseAnswer
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.*
-import ru.spbstu.sim.Command
-import ru.spbstu.sim.Robot
-import ru.spbstu.sim.SimFrame
-import ru.spbstu.sim.Simulator
+import ru.spbstu.sim.*
 import ru.spbstu.wheels.*
 import ru.spbstu.util.log
 import ru.spbstu.wheels.memoize
@@ -26,6 +24,8 @@ object Main : CliktCommand() {
     val speed: Int by option().int().default(10)
     val solFolder: String by option().default("solutions")
     val threads: Int by option().int().default(1)
+    val mergeSolutions: Boolean by option().flag(default = false)
+    val candidatesFolder by option().default("candidates")
 
 //    val count: Int by option(help = "Number of greetings").int().default(1)
 //    val name: String? by option(help = "The person to greet")
@@ -84,6 +84,45 @@ object Main : CliktCommand() {
     }
 
     override fun run() {
+        if(mergeSolutions) { /* merge solution mode */
+            val folder = File(candidatesFolder)
+            val sols = File(solFolder)
+            sols.mkdirs()
+            check(folder.exists())
+            check(folder.isDirectory)
+
+            val dirs = folder.listFiles().filter { it.isDirectory }.sortedBy { it.name }
+            val allNames = dirs.flatMapTo(mutableSetOf()) { it.list().filter { it.endsWith(".sol") }.asIterable() }
+            for(name in allNames) {
+                val scoring = mutableMapOf<File, Pair<Int, String>>()
+                for(dir in dirs) {
+                    val file = dir.listFiles { _, nm -> nm == name  }.firstOrNull() ?: continue
+                    val text = file.readText()
+                    val ans = parseAnswer(text)
+                    var score = 0
+                    var numberOfBots = 1
+                    val iterator = ans.iterator()
+                    while(iterator.hasNext()) {
+                        for(i in 1..numberOfBots) {
+                            check(iterator.hasNext())
+                            val command = iterator.next()
+                            if(command === CLONE) ++numberOfBots
+                        }
+                        ++score
+                    }
+                    scoring[dir] = score to text
+                }
+                File(sols, name).printWriter().use {
+                    val top = scoring.minBy { it.value.first }
+                    log.debug("File: $name")
+                    check(top != null)
+                    log.debug("Top score: ${top.value.first}; folder: ${top.key}")
+                    it.print(top.value.second)
+                }
+            }
+            return
+        }
+
         if (map != "all") {
             runBlocking { handleMap("docs/tasks/prob-$map.desc") }
         } else {
