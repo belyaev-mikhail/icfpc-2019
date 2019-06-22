@@ -88,6 +88,7 @@ def submit(block_num, sol_path, desc_path):
     url = urllib.parse.urljoin(BLOCKCHAIN_ENDPOINT, 'submit')
     data = {'private_id': PRIVATE_ID, 'block_num': block_num}
     files = {'solution': open(sol_path), 'puzzle': open(desc_path)}
+    print('submit block {}: solution: {}, puzzle: {}'.format(block_num, sol_path, desc_path))
     response = requests.post(url, data=data, files=files, allow_redirects=True)
     return response.json()
 
