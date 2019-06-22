@@ -16,6 +16,7 @@ import ru.spbstu.wheels.*
 import ru.spbstu.util.log
 import ru.spbstu.wheels.memoize
 import java.io.File
+import java.lang.Exception
 
 object Main : CliktCommand() {
     val map: String by option(help = "Map to run on").default("all")
@@ -31,9 +32,15 @@ object Main : CliktCommand() {
 //    val name: String? by option(help = "The person to greet")
 
     suspend fun CoroutineScope.handleMap(file: String) {
-        val data = File(file).let { parseFile(it.name, it.readText()) }
-        log.debug("Running portfolio for $file")
+        try {
+            val data = File(file).let { parseFile(it.name, it.readText()) }
+            log.debug("Running portfolio for $file")
 
+            val path = runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
+                val paths = listOf(SuperSmarterAStarBot::run)
+                        .map {
+                            val map = GameMap(data)
+                            val sim = Simulator(Robot(data.initial), map)
         val path = run {
             val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot,
                     ::priorityAstarBot,::smarterPriorityAstarBot, ::evenSmarterPriorityAstarBot,
@@ -43,21 +50,24 @@ object Main : CliktCommand() {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 
-                        it.name to async { handleMapSingle(sim, it) }
-                    }
+                            it.name to async { handleMapSingle(sim, it) }
+                        }
 
-            while (paths.any { it.second.isActive }) {
-                yield()
+                while (paths.any { it.second.isActive }) {
+                    yield()
+                }
+
+                paths.map { it.first to it.second.await() }.minBy { it.second.count() }
             }
 
-            paths.map { it.first to it.second.await() }.minBy { it.second.count() }
-        }
-
-        File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
-            log.debug("Solution for file $file: ${path?.second?.joinToString("")}")
-            log.debug("Solution score for file $file: ${path?.second?.count()}")
-            log.debug("Best solution for file $file is ${path?.first}")
-            it.write(path?.second?.map { it.toString() }?.joinToString(""))
+            File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
+                log.debug("Solution for file $file: ${path?.second?.joinToString("")}")
+                log.debug("Solution score for file $file: ${path?.second?.count()}")
+                log.debug("Best solution for file $file is ${path?.first}")
+                it.write(path?.second?.map { it.toString() }?.joinToString(""))
+            }
+        } catch (ex: Exception) {
+            ex.printStackTrace()
         }
     }
 
@@ -80,7 +90,7 @@ object Main : CliktCommand() {
                 sim = sim.apply(command)
             }
         }
-
+        check(sim.hasSolved)
         return path
     }
 
