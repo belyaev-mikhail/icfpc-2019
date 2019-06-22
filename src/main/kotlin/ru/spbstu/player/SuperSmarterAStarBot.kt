@@ -9,6 +9,8 @@ import org.graphstream.graph.DepthFirstIterator
 import ru.spbstu.map.*
 import ru.spbstu.sim.ATTACH_MANUPULATOR
 import ru.spbstu.sim.Simulator
+import ru.spbstu.wheels.MutableRef
+import ru.spbstu.wheels.getValue
 import ru.spbstu.wheels.isNotEmpty
 import ru.spbstu.wheels.queue
 import java.awt.Color
@@ -184,8 +186,10 @@ fun getBlobsOrdered(initial: Node, allNodes: List<Node>, edges: List<Edge>): Lis
     return nodes.map { blobs[it.id]!! }
 }
 
-fun superSmarterAstarBot(sim: Simulator) =
+fun superSmarterAstarBot(simref: MutableRef<Simulator>) =
         sequence {
+            val sim by simref
+
             val initialBlobs = findBlobs(sim.gameMap)
             val blobs = optimizeBlobs(initialBlobs)
             val graph = findGraph(blobs)
@@ -193,7 +197,7 @@ fun superSmarterAstarBot(sim: Simulator) =
             kruskal.init(graph)
             kruskal.compute()
 
-            val initialBlobIdx = blobs.indexOfFirst { sim.initialRobot.pos in it }
+            val initialBlobIdx = blobs.indexOfFirst { sim.currentRobot.pos in it }
             val rootNode = graph.getNode<Node>("$initialBlobIdx")
 
             val orderedBlobs = getBlobsOrdered(rootNode, graph.getNodeSet<Node>().toList(), kruskal.getTreeEdges<Edge>().toList())
