@@ -63,7 +63,19 @@ object USE_DRILL : Command() {
 }
 
 data class ATTACH_MANUPULATOR(val x: Int, val y: Int) : Command() {
+    constructor(p: Point) : this(p.v0, p.v1)
+
     override fun toString(): String = "B($x,$y)"
+}
+
+object RESET : Command() {
+    override fun toString(): String = "R"
+}
+
+data class SHIFT_TO(val x: Int, val y: Int) : Command() {
+    constructor(p: Point) : this(p.v0, p.v1)
+
+    override fun toString(): String = "T($x,$y)"
 }
 
 enum class Orientation(val dx: Int, val dy: Int) {
@@ -157,6 +169,8 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
 
     var currentRobot: Robot = initialRobot
     var gameMap: GameMap = initialGameMap
+
+    var teleports: Set<Point> = setOf()
 
     fun die(msg: String): Nothing = throw SimulatorException(msg, currentRobot, gameMap)
 
@@ -261,6 +275,26 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
 
                 currentRobot = currentRobot.copy(boosters = boosters, manipulators = manupulators)
             }
+
+            is RESET -> {
+                val boosters = currentRobot.boosters.toMutableMap()
+                if (TELEPORT !in boosters) die("Cannot use teleport")
+                boosters.dec(TELEPORT)
+
+                if (gameMap[currentRobot.pos].booster == MYSTERY || currentRobot.pos in teleports)
+                    die("Cannot reset teleport here")
+
+                teleports += currentRobot.pos
+            }
+
+            is SHIFT_TO -> {
+                val newPos = Point(cmd.x, cmd.y)
+
+                if (newPos !in teleports)
+                    die("Cannot shift with $cmd")
+
+                currentRobot = currentRobot.copy(pos = newPos)
+            }
         }
 
         repaint()
@@ -310,7 +344,10 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                             BoosterType.FAST_WHEELS -> g.paint = Color(0xB5651D).darker()
                             BoosterType.DRILL -> g.paint = Color.GREEN
                             BoosterType.MYSTERY -> g.paint = Color.BLUE
+                            BoosterType.TELEPORT -> g.paint = Color.MAGENTA
                         }
+
+                        if (p in teleports) g.paint = Color.PINK
 
                         // TODO: handle wrap + booster
 
