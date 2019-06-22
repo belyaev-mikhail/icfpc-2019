@@ -6,6 +6,7 @@ import ru.spbstu.map.Status.*
 import ru.spbstu.util.dec
 import ru.spbstu.util.inc
 import java.awt.Color
+import java.awt.Color.*
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
@@ -165,41 +166,44 @@ data class Robot(val pos: Point,
 
 class SimulatorException(msg: String, val robot: Robot, val map: GameMap) : Exception(msg)
 
-class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
+fun Simulator(currentRobot: Robot, gameMap: GameMap, teleports: Set<Point> = setOf()) =
+        Simulator(null, currentRobot, gameMap, teleports).repaint()
 
-    var currentRobot: Robot = initialRobot
-    var gameMap: GameMap = initialGameMap
-
-    var teleports: Set<Point> = setOf()
+data class Simulator
+internal constructor(val ignore: Any?,
+                     val currentRobot: Robot,
+                     val gameMap: GameMap,
+                     val teleports: Set<Point> = setOf()) {
 
     fun die(msg: String): Nothing = throw SimulatorException(msg, currentRobot, gameMap)
 
-    fun repaint() {
-        gameMap[currentRobot.pos] = Cell(WRAP)
+    fun repaint(): Simulator {
+        var newGameMap = gameMap
+        newGameMap = newGameMap.set(currentRobot.pos, Cell(WRAP))
 
         for (mp in currentRobot.manipulatorPos) {
             // TODO: handle visibility
-            val (status, _) = gameMap[mp]
+            val (status, _) = newGameMap[mp]
 
             if (status != EMPTY) continue
 
-            if (!gameMap.isVisible(currentRobot.pos, mp)) continue
+            if (!newGameMap.isVisible(currentRobot.pos, mp)) continue
 
-            gameMap[mp] = gameMap[mp].copy(status = WRAP)
+            newGameMap = newGameMap.set(mp, newGameMap[mp].copy(status = WRAP))
         }
+        return copy(gameMap = newGameMap)
     }
 
-    init {
-        repaint()
-    }
-
-    fun apply(cmd: Command, nested: Boolean = false) {
+    fun apply(cmd: Command, nested: Boolean = false): Simulator {
 
         // nested == true means we're processing second part of fast wheels
 
+        var newCurrentRobot = currentRobot
+        var newTeleports = teleports
+
         when (cmd) {
             is MoveCommand -> {
-                val newPos = currentRobot.pos.moveTo(cmd.dir)
+                val newPos = newCurrentRobot.pos.moveTo(cmd.dir)
 
                 val (newCell, newBooster) = gameMap[newPos]
 
@@ -207,13 +211,13 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                     EMPTY, WRAP -> {
                     }
                     WALL -> {
-                        val hasDrill = DRILL in currentRobot.activeBoosters
+                        val hasDrill = DRILL in newCurrentRobot.activeBoosters
 
                         if (!nested && !hasDrill) die("Cannot move through wall without a drill")
-                        else if (nested && !hasDrill) return
+                        else if (nested && !hasDrill) return this
                     }
                     SUPERWALL -> {
-                        if (nested) return
+                        if (nested) return this
                         die("Cannot move through outer wall")
                     }
                 }
@@ -223,121 +227,135 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
                         // Do nothing
                     }
                     else -> {
-                        val newBoosters = currentRobot.boosters.toMutableMap()
+                        val newBoosters = newCurrentRobot.boosters.toMutableMap()
                         newBoosters.inc(newBooster)
-                        currentRobot = currentRobot.copy(boosters = newBoosters)
+                        newCurrentRobot = newCurrentRobot.copy(boosters = newBoosters)
                     }
                 }
 
-                currentRobot = currentRobot.copy(pos = newPos)
+                newCurrentRobot = newCurrentRobot.copy(pos = newPos)
             }
 
             is NOOP -> {
             }
 
             is TURN_CW -> {
-                currentRobot = currentRobot.rotateCW()
+                newCurrentRobot = newCurrentRobot.rotateCW()
             }
 
             is TURN_CCW -> {
-                currentRobot = currentRobot.rotateCCW()
+                newCurrentRobot = newCurrentRobot.rotateCCW()
             }
 
             is USE_FAST_WHEELS -> {
-                val boosters = currentRobot.boosters.toMutableMap()
+                val boosters = newCurrentRobot.boosters.toMutableMap()
                 if (FAST_WHEELS !in boosters) die("Cannot use fast wheels")
                 boosters.dec(FAST_WHEELS)
 
-                val activeBoosters = currentRobot.activeBoosters.toMutableMap()
+                val activeBoosters = newCurrentRobot.activeBoosters.toMutableMap()
                 activeBoosters[FAST_WHEELS] = FAST_WHEELS.timer + 1 // will tick down immediately
 
-                currentRobot = currentRobot.copy(boosters = boosters, activeBoosters = activeBoosters)
+                newCurrentRobot = newCurrentRobot.copy(boosters = boosters, activeBoosters = activeBoosters)
             }
 
             is USE_DRILL -> {
-                val boosters = currentRobot.boosters.toMutableMap()
+                val boosters = newCurrentRobot.boosters.toMutableMap()
                 if (DRILL !in boosters) die("Cannot use drill")
                 boosters.dec(DRILL)
 
-                val activeBoosters = currentRobot.activeBoosters.toMutableMap()
+                val activeBoosters = newCurrentRobot.activeBoosters.toMutableMap()
                 activeBoosters[DRILL] = DRILL.timer + 1 // will tick down immediately
 
-                currentRobot = currentRobot.copy(boosters = boosters, activeBoosters = activeBoosters)
+                newCurrentRobot = newCurrentRobot.copy(boosters = boosters, activeBoosters = activeBoosters)
             }
 
             is ATTACH_MANUPULATOR -> {
-                val boosters = currentRobot.boosters.toMutableMap()
+                val boosters = newCurrentRobot.boosters.toMutableMap()
                 if (MANIPULATOR_EXTENSION !in boosters) die("Cannot use manipulator extension")
                 boosters.dec(MANIPULATOR_EXTENSION)
 
-                val manupulators = currentRobot.manipulators.toMutableList()
+                val manupulators = newCurrentRobot.manipulators.toMutableList()
                 manupulators.add(Point(cmd.x, cmd.y))
 
-                currentRobot = currentRobot.copy(boosters = boosters, manipulators = manupulators)
+                newCurrentRobot = newCurrentRobot.copy(boosters = boosters, manipulators = manupulators)
             }
 
             is RESET -> {
-                val boosters = currentRobot.boosters.toMutableMap()
+                val boosters = newCurrentRobot.boosters.toMutableMap()
                 if (TELEPORT !in boosters) die("Cannot use teleport")
                 boosters.dec(TELEPORT)
 
-                if (gameMap[currentRobot.pos].booster == MYSTERY || currentRobot.pos in teleports)
+                if (gameMap[newCurrentRobot.pos].booster == MYSTERY || newCurrentRobot.pos in newTeleports)
                     die("Cannot reset teleport here")
 
-                teleports += currentRobot.pos
+                newTeleports += newCurrentRobot.pos
             }
 
             is SHIFT_TO -> {
                 val newPos = Point(cmd.x, cmd.y)
 
-                if (newPos !in teleports)
+                if (newPos !in newTeleports)
                     die("Cannot shift with $cmd")
 
-                currentRobot = currentRobot.copy(pos = newPos)
+                newCurrentRobot = newCurrentRobot.copy(pos = newPos)
             }
         }
 
-        repaint()
+        var newSim = this.copy(currentRobot = newCurrentRobot, teleports = newTeleports).repaint()
 
-        if (!nested && cmd is MoveCommand && FAST_WHEELS in currentRobot.activeBoosters) {
-            apply(cmd, true)
+        if (!nested && cmd is MoveCommand && FAST_WHEELS in newSim.currentRobot.activeBoosters) {
+            newSim = newSim.apply(cmd, true)
         }
 
-        if (!nested) currentRobot = currentRobot.tick()
+        return newSim.copy(currentRobot = if (!nested) newSim.currentRobot.tick() else newSim.currentRobot)
     }
 
-    fun toPanel(cellSize: Int): JPanel = with(gameMap) {
-        return object : JPanel() {
-            init {
-                this.preferredSize = Dimension((maxX - minX + 2) * cellSize, (maxY - minY + 2) * cellSize)
-                this.minimumSize = this.preferredSize
-                this.maximumSize = this.preferredSize
-            }
+}
 
-            override fun paint(g: Graphics?) {
-                super.paint(g)
-                g as Graphics2D
+class SimFrame(val cellSize: Int, val mutSim: () -> Simulator) : JFrame() {
+    init {
+        add(panel())
+        pack()
+        isVisible = true
 
-                g.background = Color.BLACK
+    }
 
-                fun drawPoint(point: Point) = with(point) {
-                    g.fillRect((v0 + 1) * cellSize, (maxY - v1) * cellSize, cellSize, cellSize)
-                    g.paint = Color.DARK_GRAY
-                    g.drawRect((v0 + 1) * cellSize, (maxY - v1) * cellSize, cellSize, cellSize)
+    fun panel(): JPanel =
+            object : JPanel() {
+                init {
+                    with(mutSim().gameMap) {
+                        preferredSize = Dimension((maxX - minX + 2) * cellSize, (maxY - minY + 2) * cellSize)
+                        minimumSize = preferredSize
+                        maximumSize = preferredSize
+                    }
                 }
 
-                for (y in (-1 + minY)..(maxY + 1)) {
-                    for (x in (-1 + minX)..(maxX + 1)) {
-                        val p = Point(x, y)
+                override fun paint(g: Graphics?) =
+                        with(mutSim()) {
+                            with(gameMap) {
+                                super.paint(g)
+                                g as Graphics2D
 
-                        val (status, booster) = cells[p] ?: Cell.Wall
+                                g.background = BLACK
 
-                        when (status) {
-                            Status.WALL, SUPERWALL -> g.paint = Color.BLACK
-                            Status.EMPTY -> g.paint = Color.WHITE
-                            Status.WRAP -> g.paint = Color.GRAY
-                            else -> g.paint = Color.CYAN
-                        }
+                                fun drawPoint(point: Point) = with(point) {
+                                    g.fillRect((v0 + 1) * cellSize, (maxY - v1) * cellSize, cellSize, cellSize)
+                                    g.paint = DARK_GRAY
+                                    g.drawRect((v0 + 1) * cellSize, (maxY - v1) * cellSize, cellSize, cellSize)
+                                }
+
+                                for (y in (-1 + minY)..(maxY + 1)) {
+                                    for (x in (-1 + minX)..(maxX + 1)) {
+                                        val p = Point(x, y)
+
+                                        val (status, booster) = cells[p] ?: Cell.Wall
+
+                                        when (status) {
+                                            WALL, SUPERWALL -> g.paint = BLACK
+                                            EMPTY -> g.paint = WHITE
+                                            WRAP -> g.paint = GRAY
+                                            else -> g.paint = CYAN
+                                        }
 
                         when (booster) {
                             BoosterType.MANIPULATOR_EXTENSION -> g.paint = Color.YELLOW.darker()
@@ -349,32 +367,22 @@ class Simulator(val initialRobot: Robot, val initialGameMap: GameMap) {
 
                         if (p in teleports) g.paint = Color.PINK
 
-                        // TODO: handle wrap + booster
+                                        // TODO: handle wrap + booster
 
-                        drawPoint(p)
-                    }
-                }
+                                        drawPoint(p)
+                                    }
+                                }
 
-                for (manip in currentRobot.manipulatorPos) {
-                    g.paint = Color.YELLOW
-                    drawPoint(manip)
-                }
+                                for (manip in currentRobot.manipulatorPos) {
+                                    g.paint = YELLOW
+                                    drawPoint(manip)
+                                }
 
-                g.paint = Color.RED
-                drawPoint(currentRobot.pos)
-
-
+                                g.paint = RED
+                                drawPoint(currentRobot.pos)
+                            }
+                        }
             }
-        }
-    }
 
-    fun display(cellSize: Int): JFrame {
-        val frame = JFrame()
-        frame.add(toPanel(cellSize))
-        frame.pack()
-        frame.isVisible = true
-        return frame
 
-        // frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
-    }
 }
