@@ -45,7 +45,7 @@ object Main : CliktCommand() {
         val best = run {
             val paths = listOf(
                     "astarBot" to ::astarBot.withAutoTick(),
-                    //"enclosedAstarBot" to ::enclosedAstarBot.withAutoTick(),
+                    "enclosedAstarBot" to ::enclosedAstarBot.withAutoTick(),
                     "smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
                     "evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
                     "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
@@ -55,8 +55,9 @@ object Main : CliktCommand() {
                     "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
                     "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
                     "SuperSmarterAStarBot" to SuperSmarterAStarBot::run.withAutoTick(),
-                    //"theMostSmartestPrioritySimulatingEnclosedAstarBot" to ::theMostSmartestPrioritySimulatingEnclosedAstarBot.withAutoTick(),
-                    "CloningBotSwarm" to ::CloningBotSwarm)
+                    "theMostSmartestPrioritySimulatingEnclosedAstarBot" to ::theMostSmartestPrioritySimulatingEnclosedAstarBot.withAutoTick(),
+                    "CloningBotSwarm" to ::CloningBotSwarm,
+                    "SimulatingCloningBotSwarm" to ::SimulatingCloningBotSwarm)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
@@ -153,7 +154,7 @@ object Main : CliktCommand() {
             runBlocking(pool) { handleMap("docs/tasks/prob-$filename.desc") }
         } else {
             runBlocking(pool) {
-                File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
+                File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.sorted().map {
                     async { handleMap(it.absolutePath) }
                 }.awaitAll()
             }
