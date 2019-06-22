@@ -113,7 +113,7 @@ fun evenSmarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: 
                 }
 
                 if (closestBooster != null) {
-                    val local = astarWithoutTurnsWalk(sim, closestBooster, idx)
+                    val local = astarForWalking(sim, closestBooster, idx)
                     yieldAll(local)
                 }
 
@@ -156,7 +156,7 @@ fun theMostSmartestAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, i
                         it.booster == MANIPULATOR_EXTENSION
                     }
                     if (booster != null) {
-                        val pathToBooster = astarWithoutTurnsWalk(sim, booster, idx)
+                        val pathToBooster = astarForWalking(sim, booster, idx)
                         yieldAll(pathToBooster)
                         break
                     }
