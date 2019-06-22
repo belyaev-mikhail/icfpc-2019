@@ -41,15 +41,6 @@ object Main : CliktCommand() {
                         .map {
                             val map = GameMap(data)
                             val sim = Simulator(Robot(data.initial), map)
-        val path = run {
-            val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot,
-                    ::priorityAstarBot,::smarterPriorityAstarBot, ::evenSmarterPriorityAstarBot,
-                    ::theMostSmartestAstarBot, ::theMostSmartestPriorityAstarBot,
-                    ::superSmarterAstarBot)
-                    .map {
-                        val map = GameMap(data)
-                        val sim = Simulator(Robot(data.initial), map)
-
                             it.name to async { handleMapSingle(sim, it) }
                         }
 
@@ -95,7 +86,7 @@ object Main : CliktCommand() {
     }
 
     override fun run() {
-        if(mergeSolutions) { /* merge solution mode */
+        if (mergeSolutions) { /* merge solution mode */
             val folder = File(candidatesFolder)
             val sols = File(solFolder)
             sols.mkdirs()
@@ -104,20 +95,20 @@ object Main : CliktCommand() {
 
             val dirs = folder.listFiles().filter { it.isDirectory }.sortedBy { it.name }
             val allNames = dirs.flatMapTo(mutableSetOf()) { it.list().filter { it.endsWith(".sol") }.asIterable() }
-            for(name in allNames) {
+            for (name in allNames) {
                 val scoring = mutableMapOf<File, Pair<Int, String>>()
-                for(dir in dirs) {
-                    val file = dir.listFiles { _, nm -> nm == name  }.firstOrNull() ?: continue
+                for (dir in dirs) {
+                    val file = dir.listFiles { _, nm -> nm == name }.firstOrNull() ?: continue
                     val text = file.readText()
                     val ans = parseAnswer(text)
                     var score = 0
                     var numberOfBots = 1
                     val iterator = ans.iterator()
-                    while(iterator.hasNext()) {
-                        for(i in 1..numberOfBots) {
+                    while (iterator.hasNext()) {
+                        for (i in 1..numberOfBots) {
                             check(iterator.hasNext())
                             val command = iterator.next()
-                            if(command === CLONE) ++numberOfBots
+                            if (command === CLONE) ++numberOfBots
                         }
                         ++score
                     }
