@@ -19,8 +19,12 @@ import java.awt.Graphics2D
 import javax.swing.JFrame
 import javax.swing.JPanel
 import kotlin.random.Random
+import kotlin.reflect.KCallable
+import kotlin.reflect.KFunction
 
-object SuperSmarterAStarBot {
+typealias BotType = (MutableRef<Simulator>, Set<Point>, Int) -> Sequence<Pair<Int, Command>>
+
+object SuperSmarterAStarBot: BotType {
     const val BLOB_SIZE = 20
 
     data class Blob(val initial: Point, val points: Set<Point>)
@@ -185,7 +189,7 @@ object SuperSmarterAStarBot {
         return nodes.map { blobs[it.id]!! }
     }
 
-    fun run(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0): Sequence<Pair<Int, Command>> {
+    override fun invoke(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int): Sequence<Pair<Int, Command>> {
         return sequence {
             val sim by simref
 
@@ -208,4 +212,7 @@ object SuperSmarterAStarBot {
             }
         }
     }
+
+    val name: String = "SuperSmarterAStarBot"
+    override fun toString(): String = name
 }
