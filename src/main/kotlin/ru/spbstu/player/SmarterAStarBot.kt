@@ -1,6 +1,7 @@
 package ru.spbstu.player
 
 import ru.spbstu.map.BoosterType.MANIPULATOR_EXTENSION
+import ru.spbstu.map.Point
 import ru.spbstu.map.Status
 import ru.spbstu.map.euclidDistance
 import ru.spbstu.sim.ATTACH_MANUPULATOR
@@ -55,13 +56,12 @@ fun applyBoosters(sim: Simulator) = sequence {
     }
 }
 
-fun smarterAstarBot(simref: MutableRef<Simulator>) =
+fun smarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
         sequence {
             while (true) {
                 val sim by simref
-                val target = sim
-                        .gameMap
-                        .cells
+                val cells = sim.gameMap.cells.filter { it.key in points }
+                val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
                             sim.currentRobot.pos.euclidDistance(it.key)
@@ -74,14 +74,14 @@ fun smarterAstarBot(simref: MutableRef<Simulator>) =
             }
         }
 
-fun evenSmarterAstarBot(simref: MutableRef<Simulator>) =
+fun evenSmarterAstarBot(simref: MutableRef<Simulator>, points: Set<Point>) =
         sequence {
             while (true) {
                 val sim by simref
+                val cells = sim.gameMap.cells.filter { it.key in points }
                 yieldAll(applyBoosters(sim))
 
-                val closestBooster = sim.gameMap
-                        .cells
+                val closestBooster = cells
                         .filter { it.value.booster != null }
                         .filter { it.value.booster == MANIPULATOR_EXTENSION }
                         .minBy { sim.currentRobot.pos.euclidDistance(it.key) }
@@ -92,8 +92,7 @@ fun evenSmarterAstarBot(simref: MutableRef<Simulator>) =
                 }
                 yieldAll(applyBoosters(sim))
 
-                val target = sim.gameMap
-                        .cells
+                val target = cells
                         .filter { it.value.status == Status.EMPTY }
                         .minBy {
                             sim.currentRobot.pos.euclidDistance(it.key)

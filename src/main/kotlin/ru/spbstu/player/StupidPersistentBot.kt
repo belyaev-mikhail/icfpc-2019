@@ -52,7 +52,7 @@ fun wholeMapAStar(sim: Simulator) = run {
     )
 }
 
-fun persistentBot(simref: MutableRef<Simulator>) =
+fun persistentBot(simref: MutableRef<Simulator>, points: Set<Point> /*todo*/) =
         sequence {
             while(true) {
                 val sim by simref

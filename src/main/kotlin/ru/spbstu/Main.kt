@@ -7,17 +7,16 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import kotlinx.coroutines.*
 import ru.spbstu.map.GameMap
+import ru.spbstu.map.Point
 import ru.spbstu.parse.parseFile
-import ru.spbstu.player.astarBot
-import ru.spbstu.player.evenSmarterAstarBot
-import ru.spbstu.player.persistentBot
-import ru.spbstu.player.smarterAstarBot
-import ru.spbstu.player.superSmarterAstarBot
+import ru.spbstu.player.*
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Robot
 import ru.spbstu.sim.SimFrame
 import ru.spbstu.sim.Simulator
 import ru.spbstu.wheels.*
+import ru.spbstu.util.log
+import ru.spbstu.wheels.memoize
 import java.io.File
 
 object Main : CliktCommand() {
@@ -35,32 +34,35 @@ object Main : CliktCommand() {
         val data = File(file).let { parseFile(it.name, it.readText()) }
 
         val path = runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
-            val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot, ::superSmarterAstarBot)
+            val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot,
+                    ::priorityAstarBot,::smarterPriorityAstarBot, ::evenSmarterPriorityAstarBot,
+                    ::superSmarterAstarBot)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 
-                        async { handleMapSingle(sim, it) }
+                        it.name to async { handleMapSingle(sim, it) }
                     }
 
-            while (paths.any { it.isActive }) {
+            while (paths.any { it.second.isActive }) {
                 yield()
             }
 
-            paths.map { it.await() }.minBy { it.count() }
+            paths.map { it.first to it.second.await() }.minBy { it.second.count() }
         }
 
         File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
-            println("Solution for file $file: ${path?.joinToString("")}")
-            println("Solution score for file $file: ${path?.count()}")
-            it.write(path?.map { it.toString() }?.joinToString(""))
+            log.debug("Solution for file $file: ${path?.second?.joinToString("")}")
+            log.debug("Solution score for file $file: ${path?.second?.count()}")
+            log.debug("Best solution for file $file is ${path?.first}")
+            it.write(path?.second?.map { it.toString() }?.joinToString(""))
         }
     }
 
-    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>) -> Sequence<Command>): Sequence<Command> {
+    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>) -> Sequence<Command>): Sequence<Command> {
         val mutSim = ref(isim)
         var sim by mutSim
-        val path = bot(mutSim).memoize()
+        val path = bot(mutSim, sim.gameMap.cells.keys).memoize()
 
         if (gui) {
             val frame = SimFrame(guiCellSize) { mutSim.value }
@@ -82,7 +84,7 @@ object Main : CliktCommand() {
 
     override fun run() {
         if (map != "all") {
-            handleMap("docs/tasks/$map.desc")
+            handleMap("docs/tasks/prob-$map.desc")
         } else {
             runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
                 val asyncs = File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {

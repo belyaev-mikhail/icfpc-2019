@@ -1,6 +1,7 @@
 package ru.spbstu.player
 
 import ru.spbstu.map.Point
+import ru.spbstu.map.Status
 import ru.spbstu.map.manhattanDistance
 import ru.spbstu.sim.*
 import ru.spbstu.wheels.getOption
@@ -63,7 +64,8 @@ fun astarWalk(sim: Simulator, target: Point): List<Command> {
             RobotAndCommand(robot, USE_DRILL),
             heur = { (robot, _) ->
                 (robot.manipulatorPos.map { it.manhattanDistance(target) }.min()
-                        ?: Int.MAX_VALUE).toDouble()
+                        ?: Int.MAX_VALUE).toDouble() +
+                        (robot.manipulatorPos.count { sim.gameMap[it].status == Status.EMPTY }.toDouble() / robot.manipulatorPos.size)
             },
             goal = { (robot, _) ->
                 robot.manipulatorPos.contains(target) && sim.gameMap.isVisible(robot.pos, target)
@@ -92,6 +94,31 @@ fun astarWithoutTurnsWalk(sim: Simulator, target: Point): List<Command> {
             },
             neighbours = { (me, _) ->
                 val commands = listOf(MOVE_UP, MOVE_RIGHT, MOVE_LEFT, MOVE_DOWN)
+                commands.map { RobotAndCommand(me.doCommand(it), it) }
+                        .asSequence()
+                        .filter { !sim.gameMap[it.v0.pos].status.isWall }
+            }
+    )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
+}
+
+fun visibleAstarWalk(sim: Simulator, target: Point): List<Command> {
+    val robot = sim.currentRobot
+
+    check(!sim.gameMap[target].status.isWall)
+
+    return aStarSearch(
+            RobotAndCommand(robot, USE_DRILL),
+            heur = { (robot, _) ->
+                robot.manipulatorPos
+                        .map { it.manhattanDistance(target).toDouble() + if (sim.gameMap.isVisible(robot.pos, it)) 0.1 else 0.0 }
+                        .min()
+                        ?: Double.MAX_VALUE
+            },
+            goal = { (robot, _) ->
+                robot.manipulatorPos.contains(target) && sim.gameMap.isVisible(robot.pos, target)
+            },
+            neighbours = { (me, _) ->
+                val commands = listOf(TURN_CW, TURN_CCW, MOVE_UP, MOVE_RIGHT, MOVE_LEFT, MOVE_DOWN)
                 commands.map { RobotAndCommand(me.doCommand(it), it) }
                         .asSequence()
                         .filter { !sim.gameMap[it.v0.pos].status.isWall }
