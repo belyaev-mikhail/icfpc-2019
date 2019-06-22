@@ -1,5 +1,7 @@
 package ru.spbstu.map
 
+import org.organicdesign.fp.collections.ImMap
+import org.organicdesign.fp.collections.PersistentHashMap
 import ru.spbstu.ktuples.Tuple2
 import ru.spbstu.map.Status.*
 import ru.spbstu.parse.Task
@@ -69,69 +71,70 @@ data class Booster(val coords: Point, val type: BoosterType)
 
 typealias Obstacle = Shape
 
-data class GameMap(
-        val corners: List<Point>,
-        val obstacles: List<Obstacle>,
-        val boosters: List<Booster>) {
+operator fun <K, V> ImMap<K, V>.plus(kv: Pair<K, V>) = assoc(kv.first, kv.second)
 
-    constructor(task: Task) : this(task.map, task.obstacles, task.boosters)
-
+fun GameMap(corners: List<Point>, obstacles: List<Obstacle>, boosters: List<Booster>): GameMap {
+    val mapPath = corners.toPath2D()
     val cells = mutableMapOf<Point, Cell>()
 
-    val minX: Int
-    val maxX: Int
-    val minY: Int
-    val maxY: Int
+    val mapBounds = mapPath.bounds
 
-    init {
-        val mapPath = corners.toPath2D()
+    val minX = mapBounds.minX.toInt()
+    val maxX = mapBounds.maxX.toInt()
+    val minY = mapBounds.minY.toInt()
+    val maxY = mapBounds.maxY.toInt()
 
-        val mapBounds = mapPath.bounds
+    for (x in minX..maxX) {
+        for (y in minY..maxY) {
+            val p = Point(x, y)
 
-        minX = mapBounds.minX.toInt()
-        maxX = mapBounds.maxX.toInt()
-        minY = mapBounds.minY.toInt()
-        maxY = mapBounds.maxY.toInt()
+            if (mapPath.contains(p)) {
+                cells[p] = Cell.Empty
+            } else {
+                cells[p] = Cell.Superwall
+            }
+        }
+    }
 
-        for (x in minX..maxX) {
-            for (y in minY..maxY) {
+    for (obstacle in obstacles) {
+        val obsPath = obstacle.toPath2D()
+
+        val obsBounds = obsPath.bounds
+
+        for (x in obsBounds.minX.toInt()..obsBounds.maxX.toInt()) {
+            for (y in obsBounds.minY.toInt()..obsBounds.maxY.toInt()) {
                 val p = Point(x, y)
 
-                if (mapPath.contains(p)) {
-                    cells[p] = Cell.Empty
-                } else {
-                    cells[p] = Cell.Superwall
+                if (obsPath.contains(p)) {
+                    cells[p] = Cell.Wall
                 }
             }
-        }
-
-        for (obstacle in obstacles) {
-            val obsPath = obstacle.toPath2D()
-
-            val obsBounds = obsPath.bounds
-
-            for (x in obsBounds.minX.toInt()..obsBounds.maxX.toInt()) {
-                for (y in obsBounds.minY.toInt()..obsBounds.maxY.toInt()) {
-                    val p = Point(x, y)
-
-                    if (obsPath.contains(p)) {
-                        cells[p] = Cell.Wall
-                    }
-                }
-            }
-        }
-
-        for ((coords, status) in boosters) {
-            // TODO: sanity check?
-            cells[coords] = Cell(EMPTY, status)
         }
     }
 
+    for ((coords, status) in boosters) {
+        // TODO: sanity check?
+        cells[coords] = Cell(EMPTY, status)
+    }
+
+    return GameMap(PersistentHashMap.of(cells.entries), minX, maxX, minY, maxY)
+}
+
+fun GameMap(task: Task) = GameMap(task.map, task.obstacles, task.boosters)
+
+data class GameMap(
+        val cells: ImMap<Point, Cell>,
+        val minX: Int,
+        val maxX: Int,
+        val minY: Int,
+        val maxY: Int) {
     operator fun get(p: Point): Cell = cells[p] ?: Cell.Superwall
 
-    operator fun set(p: Point, c: Cell) {
-        cells[p] = c
-    }
+//    operator fun set(p: Point, c: Cell) {
+//        cells[p] = c
+//    }
+
+    fun set(p: Point, c: Cell) = copy(cells = cells + (p to c))
 
     fun isVisible(from: Point, to: Point): Boolean {
         val points = getSupercoverLine(from, to)

@@ -9,11 +9,15 @@ import kotlinx.coroutines.*
 import ru.spbstu.map.GameMap
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.astarBot
+import ru.spbstu.player.evenSmarterAstarBot
+import ru.spbstu.player.persistentBot
 import ru.spbstu.player.smarterAstarBot
+import ru.spbstu.player.superSmarterAstarBot
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Robot
+import ru.spbstu.sim.SimFrame
 import ru.spbstu.sim.Simulator
-import ru.spbstu.wheels.memoize
+import ru.spbstu.wheels.*
 import java.io.File
 
 object Main : CliktCommand() {
@@ -31,7 +35,7 @@ object Main : CliktCommand() {
         val data = File(file).let { parseFile(it.name, it.readText()) }
 
         val path = runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
-            val paths = listOf(::astarBot, ::smarterAstarBot)
+            val paths = listOf(::astarBot, ::smarterAstarBot, ::evenSmarterAstarBot, ::superSmarterAstarBot)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
@@ -48,17 +52,20 @@ object Main : CliktCommand() {
 
         File(File(solFolder), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
             println("Solution for file $file: ${path?.joinToString("")}")
+            println("Solution score for file $file: ${path?.count()}")
             it.write(path?.map { it.toString() }?.joinToString(""))
         }
     }
 
-    suspend fun handleMapSingle(sim: Simulator, bot: (Simulator) -> Sequence<Command>): Sequence<Command> {
-        val path = bot(sim).memoize()
+    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>) -> Sequence<Command>): Sequence<Command> {
+        val mutSim = ref(isim)
+        var sim by mutSim
+        val path = bot(mutSim).memoize()
 
         if (gui) {
-            val frame = sim.display(guiCellSize)
+            val frame = SimFrame(guiCellSize) { mutSim.value }
             for (command in path) {
-                sim.apply(command)
+                sim = sim.apply(command)
                 delay((1000.0 / speed).toLong())
                 frame.repaint()
             }
@@ -66,7 +73,7 @@ object Main : CliktCommand() {
             frame.dispose()
         } else {
             for (command in path) {
-                sim.apply(command)
+                sim = sim.apply(command)
             }
         }
 

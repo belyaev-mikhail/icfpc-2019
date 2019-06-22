@@ -37,3 +37,8 @@ fun Shape.toPath2D(): Path2D {
 }
 
 fun Path2D.contains(p: Point): Boolean = contains(p.v0 + 0.5, p.v1 + 0.5)
+
+operator fun Point.times(other: Int) = Point(v0 * other, v1 * other)
+operator fun Point.div(other: Int) = Point(v0 / other, v1 / other)
+operator fun Point.plus(other: Int) = Point(v0 + other, v1 + other)
+operator fun Point.plus(other: Point) = Point(v0 + other.v0, v1 + other.v1)
