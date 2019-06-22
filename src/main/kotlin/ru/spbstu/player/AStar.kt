@@ -101,6 +101,28 @@ fun astarWithoutTurnsWalk(sim: Simulator, target: Point, idx: Int = 0): List<Com
     )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
 }
 
+fun astarWithoutTurnsAndUpsWalk(sim: Simulator, target: Point, idx: Int = 0): List<Command> {
+    val robot = { sim.currentRobots[idx] }
+
+    check(!sim.gameMap[target].status.isWall)
+
+    return aStarSearch(
+            RobotAndCommand(robot(), USE_DRILL),
+            heur = { (robot, _) ->
+                robot.pos.manhattanDistance(target).toDouble()
+            },
+            goal = { (robot, _) ->
+                robot.pos == target
+            },
+            neighbours = { (me, _) ->
+                val commands = listOf(MOVE_RIGHT, MOVE_LEFT, MOVE_DOWN)
+                commands.map { RobotAndCommand(me.doCommand(it), it) }
+                        .asSequence()
+                        .filter { !sim.gameMap[it.v0.pos].status.isWall }
+            }
+    )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
+}
+
 fun visibleAstarWalk(sim: Simulator, target: Point, idx: Int = 0): List<Command> {
     val robot = { sim.currentRobots[idx] }
 

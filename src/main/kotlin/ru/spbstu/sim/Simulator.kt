@@ -115,8 +115,6 @@ enum class Orientation(val dx: Int, val dy: Int) {
     }
 }
 
-operator fun Point.plus(orientation: Point) = copy(v0 = v0 + orientation.v0, v1 = v1 + orientation.v1)
-
 data class Robot(val pos: Point,
                  val orientation: Orientation = Orientation.RIGHT,
                  val manipulators: List<Point> = listOf(
