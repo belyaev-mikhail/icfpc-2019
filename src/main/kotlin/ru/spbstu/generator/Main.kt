@@ -13,6 +13,9 @@ object Main : CliktCommand() {
         val rawParameters = File(input).readText()
         val parameters = Parameters.read(rawParameters)
         val map = TunnelGenerator(parameters).generate()
+        val walls = map.filter { it.value == TunnelGenerator.Cell.WALL }.map { it.key }.toSet()
+        val bonuses = BusterGenerator(walls, parameters)
+        println(bonuses)
         Test(map, parameters).repaint()
     }
 }
