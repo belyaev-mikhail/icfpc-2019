@@ -5,7 +5,8 @@ import ru.spbstu.map.Point
 
 class BusterGenerator(val walls: Set<Point>, val parameters: Parameters) {
 
-    data class Busters(val manipulators: Set<Point>,
+    data class Busters(val robot: Point,
+                       val manipulators: Set<Point>,
                        val fastWheels: Set<Point>,
                        val drills: Set<Point>,
                        val teleports: Set<Point>,
@@ -36,6 +37,7 @@ class BusterGenerator(val walls: Set<Point>, val parameters: Parameters) {
             drills = generatePoints(parameters.drillsNumber),
             teleports = generatePoints(parameters.teleportsNumber),
             cloningBoosters = generatePoints(parameters.cloningBoostersNumber),
-            spawnPoints = generatePoints(parameters.spawnPointsNumber)
+            spawnPoints = generatePoints(parameters.spawnPointsNumber),
+            robot = generatePoints(1).first()
     )
 }
