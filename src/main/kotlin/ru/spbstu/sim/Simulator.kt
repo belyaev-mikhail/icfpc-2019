@@ -64,6 +64,8 @@ object USE_DRILL : Command() {
 }
 
 data class ATTACH_MANUPULATOR(val x: Int, val y: Int) : Command() {
+    constructor(p: Point) : this(p.v0, p.v1)
+
     override fun toString(): String = "B($x,$y)"
 }
 
@@ -72,6 +74,8 @@ object RESET : Command() {
 }
 
 data class SHIFT_TO(val x: Int, val y: Int) : Command() {
+    constructor(p: Point) : this(p.v0, p.v1)
+
     override fun toString(): String = "T($x,$y)"
 }
 
@@ -353,12 +357,15 @@ class SimFrame(val cellSize: Int, val mutSim: () -> Simulator) : JFrame() {
                                             else -> g.paint = CYAN
                                         }
 
-                                        when (booster) {
-                                            MANIPULATOR_EXTENSION -> g.paint = YELLOW.darker()
-                                            FAST_WHEELS -> g.paint = java.awt.Color(0xB5651D).darker()
-                                            DRILL -> g.paint = GREEN
-                                            MYSTERY -> g.paint = BLUE
-                                        }
+                        when (booster) {
+                            BoosterType.MANIPULATOR_EXTENSION -> g.paint = Color.YELLOW.darker()
+                            BoosterType.FAST_WHEELS -> g.paint = Color(0xB5651D).darker()
+                            BoosterType.DRILL -> g.paint = Color.GREEN
+                            BoosterType.MYSTERY -> g.paint = Color.BLUE
+                            BoosterType.TELEPORT -> g.paint = Color.MAGENTA
+                        }
+
+                        if (p in teleports) g.paint = Color.PINK
 
                                         // TODO: handle wrap + booster
 

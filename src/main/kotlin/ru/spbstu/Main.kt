@@ -11,6 +11,7 @@ import ru.spbstu.parse.parseFile
 import ru.spbstu.player.astarBot
 import ru.spbstu.player.persistentBot
 import ru.spbstu.player.smarterAstarBot
+import ru.spbstu.player.superSmarterAstarBot
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Robot
 import ru.spbstu.sim.SimFrame
@@ -33,7 +34,7 @@ object Main : CliktCommand() {
         val data = File(file).let { parseFile(it.name, it.readText()) }
 
         val path = runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
-            val paths = listOf(::persistentBot)
+            val paths = listOf(::astarBot, ::smarterAstarBot, ::superSmarterAstarBot)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
