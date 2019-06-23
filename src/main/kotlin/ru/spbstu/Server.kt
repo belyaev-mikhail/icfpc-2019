@@ -143,13 +143,21 @@ object Server {
     }
 
     fun actualizeBlocks() {
-        val fetchedLastBlock = fetchLastBlock() ?: return
+        val fetchedLastBlock = fetchLastBlock()
+        if (fetchedLastBlock == null) {
+            log.debug("Block fetching error")
+            return
+        }
         val rootDir = File(blocksDir)
         rootDir.mkdirs()
         val blockDirs = rootDir.walkTopDown().filter { it.isDirectory }.filterNot { it.name == rootDir.name }.toList()
         val lastKnownBlock = blockDirs.map { it.name }.map { Integer.valueOf(it) }.maxBy { it }
-        if (lastKnownBlock != null && lastKnownBlock >= fetchedLastBlock.block) return
+        if (lastKnownBlock != null && lastKnownBlock >= fetchedLastBlock.block) {
+            log.debug("Last block $lastKnownBlock is actual")
+            return
+        }
 
+        log.debug("Fetched new block ${fetchedLastBlock.block}")
         val blockDir = File(rootDir, "${fetchedLastBlock.block}")
         blockDir.mkdirs()
 
