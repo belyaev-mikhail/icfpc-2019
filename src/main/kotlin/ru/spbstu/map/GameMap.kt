@@ -5,13 +5,8 @@ import org.organicdesign.fp.collections.PersistentHashMap
 import ru.spbstu.ktuples.Tuple2
 import ru.spbstu.map.Status.*
 import ru.spbstu.parse.Task
-import ru.spbstu.sim.Robot
-import java.awt.Color
-import java.awt.Dimension
-import java.awt.Graphics
-import java.awt.Graphics2D
-import javax.swing.JFrame
-import javax.swing.JPanel
+import ru.spbstu.wheels.ArrayDeque
+import ru.spbstu.wheels.memo
 import kotlin.math.sign
 
 class MapException(msg: String) : Exception(msg)
@@ -77,6 +72,7 @@ operator fun <K, V> ImMap<K, V>.plus(kv: Pair<K, V>) = assoc(kv.first, kv.second
 fun GameMap(corners: List<Point>, obstacles: List<Obstacle>, boosters: List<Booster>): GameMap {
     val mapPath = corners.toPath2D()
     val cells = mutableMapOf<Point, Cell>()
+    val boosterCells = mutableMapOf<Point, Cell>()
 
     val mapBounds = mapPath.bounds
 
@@ -116,28 +112,45 @@ fun GameMap(corners: List<Point>, obstacles: List<Obstacle>, boosters: List<Boos
     for ((coords, status) in boosters) {
         // TODO: sanity check?
         cells[coords] = Cell(EMPTY, status)
+        boosterCells[coords] = Cell(EMPTY, status)
     }
 
-    return GameMap(PersistentHashMap.of(cells.entries), minX, maxX, minY, maxY)
+    return GameMap(
+            PersistentHashMap.of(cells.entries),
+            PersistentHashMap.of(boosterCells.entries),
+            minX, maxX, minY, maxY)
 }
 
 fun GameMap(task: Task) = GameMap(task.map, task.obstacles, task.boosters)
 
 data class GameMap(
         val cells: ImMap<Point, Cell>,
+        val boosterCells: ImMap<Point, Cell>,
         val minX: Int,
         val maxX: Int,
         val minY: Int,
         val maxY: Int) {
+
     operator fun get(p: Point): Cell = cells[p] ?: Cell.Superwall
 
 //    operator fun set(p: Point, c: Cell) {
 //        cells[p] = c
 //    }
 
-    fun set(p: Point, c: Cell) = copy(cells = cells + (p to c))
+    fun set(p: Point, c: Cell): GameMap {
+        val oldCell = get(p)
+        val newBoosterCells = if (oldCell.booster != c.booster) {
+            boosterCells.without(p)
+        } else {
+            boosterCells
+        }
+        return copy(
+                cells = cells + (p to c),
+                boosterCells = newBoosterCells
+        )
+    }
 
-    fun isVisible(from: Point, to: Point): Boolean {
+    fun isVisible(from: Point, to: Point): Boolean = memo(mutableMapOf(), from to to) {
         val points = getSupercoverLine(from, to)
 
         for (p in points) {
@@ -190,6 +203,29 @@ data class GameMap(
 
         return points
     }
+
+    fun closestFrom(start: Point, pred: (Point, Cell) -> Boolean) = sequence {
+        val visited = mutableSetOf<Point>()
+        val next = ArrayDeque<Point>()
+
+        start.neighbours().forEach { next.put(it) }
+
+        while (!next.isEmpty()) {
+            val n = next.take()
+
+            if (n in visited) continue
+            if (n.v0 !in minX..maxX || n.v1 !in minY..maxY) continue
+
+            yield(n to get(n))
+
+            visited += n
+
+            // TODO: DO WE NEED THIS?
+            if (get(n).status.isWall) continue
+
+            n.neighbours().forEach { next.put(it) }
+        }
+    }.filter { pred(it.first, it.second) }
 
     fun toASCII(): String {
         val res = StringBuilder()

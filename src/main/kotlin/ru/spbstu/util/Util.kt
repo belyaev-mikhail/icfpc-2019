@@ -1,5 +1,7 @@
 package ru.spbstu.util
 
+import kotlinx.coroutines.Deferred
+
 import ru.spbstu.map.Point
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Simulator
@@ -18,7 +20,7 @@ fun <K> MutableMap<K, Int>.dec(key: K) {
     val newValue = value - 1
 
     when {
-        newValue > 0 -> this[key] = value
+        newValue > 0 -> this[key] = newValue
         newValue == 0 -> this.remove(key)
         else -> throw ArithmeticException("Cannot dec $key for $this")
     }
@@ -36,11 +38,13 @@ fun <K> Map<K, Int>.dec(key: K): Map<K, Int> {
     val newValue = value - 1
 
     return when {
-        newValue > 0 -> this + (key to value)
+        newValue > 0 -> this + (key to newValue)
         newValue == 0 -> this - key
         else -> throw ArithmeticException("Cannot dec $key for $this")
     }
 }
+
+suspend fun <T> List<Deferred<T>>.awaitAll() = kotlinx.coroutines.awaitAll(*this.toTypedArray())
 
 fun <T> Sequence<T>.withIdx(idx: Int) = map { idx to it }
 

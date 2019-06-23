@@ -11,7 +11,12 @@ import ru.spbstu.map.Point
 import ru.spbstu.parse.parseAnswer
 import ru.spbstu.parse.parseFile
 import ru.spbstu.player.*
-import ru.spbstu.sim.*
+import ru.spbstu.sim.Command
+import ru.spbstu.sim.Robot
+import ru.spbstu.sim.SimFrame
+import ru.spbstu.sim.Simulator
+import ru.spbstu.util.awaitAll
+import ru.spbstu.wheels.*
 import ru.spbstu.util.log
 import ru.spbstu.util.toSolution
 import ru.spbstu.util.withAutoTick
@@ -20,6 +25,7 @@ import java.io.File
 import kotlin.reflect.jvm.reflect
 
 object Main : CliktCommand() {
+    val useAbsoluteMapPath: Boolean by option().flag(default = false)
     val map: String by option(help = "Map to run on").default("all")
     val gui: Boolean by option().flag(default = false)
     val guiCellSize: Int by option().int().default(10)
@@ -38,35 +44,34 @@ object Main : CliktCommand() {
 
         val best = run {
             val paths = listOf(
-                    ::astarBot.withAutoTick(),
-                    ::smarterAstarBot.withAutoTick(),
-                    ::evenSmarterAstarBot.withAutoTick(),
-                    ::priorityAstarBot.withAutoTick(),
-                    ::smarterPriorityAstarBot.withAutoTick(),
-                    ::evenSmarterPriorityAstarBot.withAutoTick(),
-                    ::theMostSmartestPriorityAstarBot.withAutoTick(),
-                    SuperSmarterAStarBot::run.withAutoTick(),
-                    ::CloningBotSwarm)
+                    "astarBot" to ::astarBot.withAutoTick(),
+                    "smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
+                    "evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
+                    "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
+                    "smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
+                    "evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
+                    "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
+                    "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
+                    "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
+                    "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick(),
+                    "CloningBotSwarm" to ::CloningBotSwarm)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 
-                        val name = it.reflect()!!.name
+                        val name = it.first
+                        val bot = it.second
 
-                        name to async {
-                            val res = handleMapSingle(sim, it)
-                            File(File(name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
+                        async {
+                            val res = handleMapSingle(sim, bot)
+                            File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
                                 it.write(res.first.toSolution())
                             }
-                            res
+                            name to res
                         }
-                    }
+                    }.awaitAll()
 
-            while (paths.any { it.second.isActive }) {
-                yield()
-            }
-
-            paths.map { it.first to it.second.await() }.minBy { it.second.second }
+            paths.minBy { it.second.second }
         }
 
         val name = best?.first
@@ -137,17 +142,17 @@ object Main : CliktCommand() {
             return
         }
 
-        if (map != "all") {
-            runBlocking { handleMap("docs/tasks/prob-$map.desc") }
-        } else {
-            runBlocking(newFixedThreadPoolContext(threads, "Pool")) {
-                val asyncs = File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
-                    async { handleMap(it.absolutePath) }
-                }
+        val pool = newFixedThreadPoolContext(threads, "Pool")
 
-                while (asyncs.any { it.isActive }) {
-                    yield()
-                }
+        if (useAbsoluteMapPath) {
+            runBlocking(pool) { handleMap(map) }
+        } else if (map != "all") {
+            runBlocking(pool) { handleMap("docs/tasks/prob-$map.desc") }
+        } else {
+            runBlocking(pool) {
+                File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
+                    async { handleMap(it.absolutePath) }
+                }.awaitAll()
             }
         }
     }
