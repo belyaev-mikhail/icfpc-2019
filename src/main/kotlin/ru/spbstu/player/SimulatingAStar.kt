@@ -2,6 +2,7 @@ package ru.spbstu.player
 
 import ru.spbstu.map.*
 import ru.spbstu.sim.*
+import ru.spbstu.util.log
 import ru.spbstu.util.withIdx
 import ru.spbstu.wheels.*
 import java.util.*
@@ -30,7 +31,7 @@ fun simulatingAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
                     .min()
                     ?: Double.MAX_VALUE
         },
-        goal = { target in it.sim.currentRobots[it.idx].manipulatorPos && it.sim.gameMap.isVisible(it.robot.pos, target) },
+        goal = { it.sim.gameMap[target].status == Status.WRAP },
         neighbours = { it.neighbors.asSequence() }
 )?.dropLast(1).orEmpty().map { it.command }.reversed()
 
@@ -68,6 +69,27 @@ fun prioritySimulatingAstarBot(simref: MutableRef<Simulator>, points: Set<Point>
                 val sim by simref
 
                 val currentRobot = { sim.currentRobots[idx] }
+
+                val target = sim.gameMap
+                        .closestFrom(currentRobot().pos) { point, cell ->
+                            point in points && cell.status == Status.EMPTY
+                        }
+                        .firstOrNull()
+
+                target ?: break
+
+                val local = simulatingAStar(sim, target.first, idx)
+                yieldAll(local)
+            }
+        }.withIdx(idx)
+
+fun smarterPrioritySimulatingAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) =
+        sequence {
+            while (true) {
+                val sim by simref
+
+                val currentRobot = { sim.currentRobots[idx] }
+                yieldAll(applyBoosters(sim, idx))
 
                 val target = sim.gameMap
                         .closestFrom(currentRobot().pos) { point, cell ->

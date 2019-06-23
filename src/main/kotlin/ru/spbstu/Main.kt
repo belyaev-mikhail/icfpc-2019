@@ -44,35 +44,37 @@ object Main : CliktCommand() {
 
         val best = run {
             val paths = listOf(
+//                    "smarterPrioritySimulatingAstarBot" to ::smarterPrioritySimulatingAstarBot.withAutoTick(),
+//                    "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
+//                    "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick())//,
                     "astarBot" to ::astarBot.withAutoTick(),
                     "enclosedAstarBot" to ::enclosedAstarBot.withAutoTick(),
                     "smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
                     "evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
-                    "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
-                    "smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
-                    "evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
-                    "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
-                    "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
-                    "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
+//                    "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
+//                    "smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
+//                    "evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
+//                    "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
+//                    "theMostSmartestPrioritySimulatingEnclosedAstarBot" to ::theMostSmartestPrioritySimulatingEnclosedAstarBot.withAutoTick(),
+//                    "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
                     "SuperSmarterAStarBot" to SuperSmarterAStarBot::run.withAutoTick(),
-                    "theMostSmartestPrioritySimulatingEnclosedAstarBot" to ::theMostSmartestPrioritySimulatingEnclosedAstarBot.withAutoTick(),
                     "CloningBotSwarm" to ::CloningBotSwarm,
                     "SimulatingCloningBotSwarm" to ::SimulatingCloningBotSwarm)
-                    .map {
-                        val map = GameMap(data)
-                        val sim = Simulator(Robot(data.initial), map)
+                    . map {
+                val map = GameMap(data)
+                val sim = Simulator(Robot(data.initial), map)
 
-                        val name = it.first
-                        val bot = it.second
+                val name = it.first
+                val bot = it.second
 
-                        async {
-                            val res = handleMapSingle(sim, bot)
-                            File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
-                                it.write(res.first.toSolution())
-                            }
-                            name to res
-                        }
-                    }.awaitAll()
+                async {
+                    val res = handleMapSingle(sim, bot)
+                    File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
+                        it.write(res.first.toSolution())
+                    }
+                    name to res
+                }
+            }.awaitAll()
 
             paths.minBy { it.second.second }
         }

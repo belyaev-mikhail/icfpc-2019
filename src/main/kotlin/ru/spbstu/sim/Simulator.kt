@@ -377,7 +377,8 @@ internal constructor(val ignore: Any?,
             newSim = newSim.apply(idx, cmd, true)
         }
 
-        return if (!nested) newSim.tick(idx) else newSim
+        // fucked up
+        return if (!nested && cmd != TICK) newSim.tick(idx) else newSim
     }
 
     fun tick(idx: Int): Simulator {

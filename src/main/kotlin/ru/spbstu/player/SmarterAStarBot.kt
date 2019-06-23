@@ -71,10 +71,10 @@ fun applyBoosters(sim: Simulator, idx: Int = 0) = sequence {
                 yield(extensionCommand)
             }
         }
-//        FAST_WHEELS in sim.boosters -> {
-//            val speedUpCommand = USE_FAST_WHEELS
-//            yield(speedUpCommand)
-//        }
+        FAST_WHEELS in sim.boosters -> {
+            val speedUpCommand = USE_FAST_WHEELS
+            yield(speedUpCommand)
+        }
     }
 }
 
