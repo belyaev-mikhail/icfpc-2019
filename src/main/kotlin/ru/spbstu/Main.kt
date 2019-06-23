@@ -59,9 +59,10 @@ object Main : CliktCommand() {
                     "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
                     "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick(),
                     "SmartAsFuckBot" to SmartAsFuckBot.withAutoTick(),
-//                  "CloningBotSwarm" to ::CloningBotSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
-                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot))
-                    .map {
+                    "CloningBotSwarm" to ::CloningBotSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
+                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
+                    "CloningBotWithSegmentationByChristofidesSwarm" to ::CloningBotWithSegmentationByChristofidesSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot)
+                ).map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 

@@ -185,6 +185,7 @@ internal constructor(val ignore: Any?,
                      val currentRobots: ImList<Robot>,
                      val gameMap: GameMap,
                      val time: Int = 0,
+                     val seenRobots: ImList<Int> = PersistentVector.empty(),
                      val boosters: Map<BoosterType, Int> = mapOf(),
                      val freshBoosters: Map<BoosterType, Int> = mapOf(),
                      val teleports: Set<Point> = setOf()) {
@@ -225,6 +226,10 @@ internal constructor(val ignore: Any?,
     fun apply(idx: Int, cmd: Command, nested: Boolean = false): Simulator {
 
         // nested == true means we're processing second part of fast wheels
+
+        var newSeenRobots = seenRobots
+
+        if (!nested) newSeenRobots = newSeenRobots.append(idx)
 
         var newGameMap = gameMap
         var newCurrentRobot = currentRobots[idx]
@@ -356,6 +361,15 @@ internal constructor(val ignore: Any?,
                 }
 
                 newFreshBoosters = emptyMap()
+
+                val diff = currentRobots.indices - newSeenRobots
+                if (diff.isEmpty() || diff.size == 1 && diff[0] == currentRobots.lastIndex) {
+                    // OK
+                } else {
+                    println("FUCK ME SIDEWAYS")
+                }
+
+                newSeenRobots = PersistentVector.empty()
             }
         }
 
@@ -365,6 +379,7 @@ internal constructor(val ignore: Any?,
         var newSim = this.copy(
                 gameMap = newGameMap,
                 currentRobots = newCurrentRobots,
+                seenRobots = newSeenRobots,
                 boosters = newBoosters,
                 freshBoosters = newFreshBoosters,
                 teleports = newTeleports,
