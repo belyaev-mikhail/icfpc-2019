@@ -306,12 +306,11 @@ object SmartAsFuckBot {
                     if (flagToBeginFromDown) {
                         val beginNode = getDownestNode(sim, points, idx) ?: break
 //                        println("BEGINING FROM $beginNode")
-                        val path = astarWithoutTurnsWalk(sim, beginNode, idx)
+                        val path = astarForWalking(sim, beginNode, idx)
                         yieldAll(path)
                         flagToBeginFromDown = false
                         continue
                     }
-
 
                     //Update pointQueue
 //                    println("BEFORE = ${pointQueue}")
@@ -390,7 +389,7 @@ object SmartAsFuckBot {
 //                            println("SEARCHING NEW NODE")
                             val newNode = getDownestNode(sim, points, idx) ?: break
                             //Go to node else break
-                            val path = astarWithoutTurnsWalk(sim, newNode, idx)
+                            val path = astarForWalking(sim, newNode, idx)
                             yieldAll(path)
                         }
                     } else {
@@ -398,7 +397,7 @@ object SmartAsFuckBot {
 //                        println("SEARCHING NEW NODE")
                         val newNode = getDownestNode(sim, points, idx) ?: break
                         //Go to node else break
-                        val path = astarWithoutTurnsWalk(sim, newNode, idx)
+                        val path = astarForWalking(sim, newNode, idx)
                         yieldAll(path)
                     }
                     ++k
