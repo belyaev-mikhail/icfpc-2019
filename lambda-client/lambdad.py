@@ -155,9 +155,12 @@ def save_block(block_info):
         f.close()
 
     absolute_block_path = os.path.abspath(bd)
-
-    response = requests.post(SOLVER_SERVER_ENDPOINT + 'newBlock/', absolute_block_path)
-    return response
+    for retry in range(10):
+        try:
+            response = requests.post(SOLVER_SERVER_ENDPOINT + 'newBlock/', absolute_block_path)
+            return response
+        except Exception:
+            pass
 
 
 # Update every REFRESH_TIME seconds
