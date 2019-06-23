@@ -34,6 +34,7 @@ object Main : CliktCommand() {
     val threads: Int by option().int().default(1)
     val mergeSolutions: Boolean by option().flag(default = false)
     val candidatesFolder by option().default("candidates")
+    val keepExisting by option().flag(default = false)
 
 //    val count: Int by option(help = "Number of greetings").int().default(1)
 //    val name: String? by option(help = "The person to greet")
@@ -61,15 +62,19 @@ object Main : CliktCommand() {
                     "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
                     "CloningBotWithSegmentationByChristofidesSwarm" to ::CloningBotWithSegmentationByChristofidesSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot)
                 ).map {
+
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
 
                         val name = it.first
                         val bot = it.second
 
+                        val resFile = File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name)
                         async {
-                            val res = handleMapSingle(sim, bot)
-                            File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name).apply { parentFile.mkdirs() }.bufferedWriter().use {
+                            if(keepExisting && resFile.exists())
+                                return@async name to Pair(sequenceOf<Pair<Int, Command>>(), Int.MAX_VALUE)
+                            val res = handleMapSingle("$name started ${file}", sim, bot)
+                            resFile.apply { parentFile.mkdirs() }.bufferedWriter().use {
                                 it.write(res.first.toSolution())
                             }
                             name to res
@@ -93,7 +98,10 @@ object Main : CliktCommand() {
         }
     }
 
-    suspend fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>, Int) -> Sequence<Pair<Int, Command>>): Pair<Sequence<Pair<Int, Command>>, Int> {
+    suspend fun handleMapSingle(message: String,
+                                isim: Simulator,
+                                bot: (MutableRef<Simulator>, Set<Point>, Int) -> Sequence<Pair<Int, Command>>): Pair<Sequence<Pair<Int, Command>>, Int> {
+        log.debug(message)
         val mutSim = ref(isim)
         var sim by mutSim
         val path = bot(mutSim, sim.gameMap.cells.keys, 0).memoize()
@@ -162,8 +170,8 @@ object Main : CliktCommand() {
         } else {
             runBlocking(pool) {
                 File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
-                    async { handleMap(it.absolutePath) }
-                }.awaitAll()
+                    handleMap(it.absolutePath)
+                }
             }
         }
     }
