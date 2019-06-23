@@ -82,6 +82,7 @@ object Main : CliktCommand() {
 //                    "CloningBotSwarm" to ::CloningBotSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
 //                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
                     "CloningBotWithSegmentationByChristofidesSwarm" to ::CloningBotWithSegmentationByChristofidesSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot)
+//                    "NonsimulatingCloningBotWithSegmentationByChristofidesSwarm" to ::NonsimulatingCloningBotWithSegmentationByChristofidesSwarm.bind(_2, ::theMostSmartestPriorityAstarBot)
             ).map {
 
                 val map = GameMap(data)
