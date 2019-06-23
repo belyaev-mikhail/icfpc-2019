@@ -12,6 +12,29 @@ import os
 import configparser
 from datetime import datetime
 
+import sched, time
+s = sched.scheduler(time.time, time.sleep)
+def do_something(sc):
+    try:
+        print('update')
+        block_info = getblockinfo()
+        block_num = block_info['block']
+
+        if not have_block(block_num):
+            save_block(block_info)
+
+        # Fill in gaps if they exist
+        for b in range(1, block_num):
+            if not have_block(b):
+                save_block(getblockinfo(b))
+    except Exception as e:
+        now = datetime.now().strftime("%c")
+        print("[{}] Update exception: {}".format(now, e))
+
+
+    s.enter(15, 1, do_something, (sc,))
+
+
 # https://stackoverflow.com/questions/12435211/python-threading-timer-repeat-function-every-n-seconds
 def every(interval):
     def decorator(function):
@@ -129,12 +152,14 @@ def save_block(block_info):
     absolute_block_path = os.path.abspath(bd)
 
     response = requests.post(SOLVER_SERVER_ENDPOINT + 'newBlock/', absolute_block_path)
+    return response
 
 
 # Update every REFRESH_TIME seconds
 @every(REFRESH_TIME)
 def update():
     try:
+        print('update')
         block_info = getblockinfo()
         block_num = block_info['block']
 
@@ -183,4 +208,7 @@ if __name__ == '__main__':
         parser.error('Port must be an integer.')
 
     updater = update()
+
+    s.enter(15, 1, do_something, (s,))
+    s.run()
     run_simple(args.bind, args.port, application)
