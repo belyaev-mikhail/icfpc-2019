@@ -145,13 +145,13 @@ fun main(args: Array<String>) {
 
 
         log.debug("Start waiting for blocks")
-
-        runBlocking {
-            while (true) {
-                Server.checkForBlock()
-                delay(10000L)
-            }
-        }
+//
+//        runBlocking {
+//            while (true) {
+//                Server.checkForBlock()
+//                delay(10000L)
+//            }
+//        }
 
     }
 }
