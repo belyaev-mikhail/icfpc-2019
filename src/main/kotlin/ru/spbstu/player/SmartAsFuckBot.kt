@@ -19,7 +19,7 @@ import javax.swing.JPanel
 import kotlin.math.abs
 import kotlin.random.Random
 
-object SmartAsFuckBot {
+object SmartAsFuckBot: BotType {
     const val BLOB_SIZE = 20
 
     data class Blob(val initial: Point, val points: Set<Point>)
@@ -187,7 +187,7 @@ object SmartAsFuckBot {
         return nodes.map { blobs[it.id]!! }
     }
 
-    fun run(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0): Sequence<Pair<Int, Command>> {
+    override fun invoke(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int): Sequence<Pair<Int, Command>> {
         return sequence {
             val sim by simref
 
@@ -195,7 +195,7 @@ object SmartAsFuckBot {
 
             val initialBlobs = findBlobs(sim.gameMap)
             val blobs = optimizeBlobs(initialBlobs)
-            display(10, simref.value.gameMap, blobs, simref.value.currentRobots[0].pos)
+            //display(10, simref.value.gameMap, blobs, simref.value.currentRobots[0].pos)
             val graph = findGraph(blobs)
             val kruskal = Kruskal()
             kruskal.init(graph)

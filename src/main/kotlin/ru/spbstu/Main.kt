@@ -54,6 +54,7 @@ object Main : CliktCommand() {
                     "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
                     "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
                     "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick(),
+                    "SmartAsFuckBot" to SmartAsFuckBot.withAutoTick(),
                     "CloningBotSwarm" to ::CloningBotSwarm)
                     .map {
                         val map = GameMap(data)
