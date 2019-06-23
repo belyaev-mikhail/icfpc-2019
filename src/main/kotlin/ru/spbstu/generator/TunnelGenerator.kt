@@ -39,6 +39,7 @@ class  TunnelGenerator(private val parameters: Parameters) {
         if (point.v0 >= parameters.mapSize) return false
         if (point.v1 >= parameters.mapSize) return false
         if (isWall(point)) return false
+        if (isPath(point)) return false
         if (falseWall(point)) return false
         matrix[point] = Cell.WALL
         return true
@@ -115,54 +116,30 @@ class  TunnelGenerator(private val parameters: Parameters) {
                 pointsIt = matrix.filter { it.value == Cell.WALL }.map { it.key }.iterator()
             }
             val point = pointsIt.next()
-            if (match(point, "000 000 1x1")) {
-                if (addWallIfCan(point.down())) {
-                    availableCorners -= 4
-                }
-            } else if (match(point, "1x1 000 000")) {
-                if (addWallIfCan(point.up())) {
-                    availableCorners -= 4
-                }
-            } else if (match(point, "100 x00 100")) {
-                if (addWallIfCan(point.right())) {
-                    availableCorners -= 4
-                }
-            } else if (match(point, "001 00x 001")) {
-                if (addWallIfCan(point.left())) {
-                    availableCorners -= 4
-                }
-            } else if (match(point, "000 000 0x1")) {
-                if (addWallIfCan(point.down())) {
-                    availableCorners -= 2
-                }
-            } else if (match(point, "000 000 1x0")) {
-                if (addWallIfCan(point.down())) {
-                    availableCorners -= 2
-                }
-            } else if (match(point, "1x0 000 000")) {
-                if (addWallIfCan(point.up())) {
-                    availableCorners -= 2
-                }
-            } else if (match(point, "0x1 000 000")) {
-                if (addWallIfCan(point.up())) {
-                    availableCorners -= 2
-                }
-            } else if (match(point, "001 00x 000")) {
-                if (addWallIfCan(point.left())) {
-                    availableCorners -= 2
-                }
-            } else if (match(point, "000 00x 001")) {
-                if (addWallIfCan(point.left())) {
-                    availableCorners -= 2
-                }
-            } else if (match(point, "100 x00 000")) {
-                if (addWallIfCan(point.right())) {
-                    availableCorners -= 2
-                }
-            } else if (match(point, "000 x00 100")) {
-                if (addWallIfCan(point.right())) {
-                    availableCorners -= 2
-                }
+            if (match(point, "000 000 1x1") && addWallIfCan(point.down())) {
+                availableCorners -= 4
+            } else if (match(point, "1x1 000 000") && addWallIfCan(point.up())) {
+                availableCorners -= 4
+            } else if (match(point, "100 x00 100") && addWallIfCan(point.right())) {
+                availableCorners -= 4
+            } else if (match(point, "001 00x 001") && addWallIfCan(point.left())) {
+                availableCorners -= 4
+            } else if (match(point, "000 000 0x1") && addWallIfCan(point.down())) {
+                availableCorners -= 2
+            } else if (match(point, "000 000 1x0") && addWallIfCan(point.down())) {
+                availableCorners -= 2
+            } else if (match(point, "1x0 000 000") && addWallIfCan(point.up())) {
+                availableCorners -= 2
+            } else if (match(point, "0x1 000 000") && addWallIfCan(point.up())) {
+                availableCorners -= 2
+            } else if (match(point, "001 00x 000") && addWallIfCan(point.left())) {
+                availableCorners -= 2
+            } else if (match(point, "000 00x 001") && addWallIfCan(point.left())) {
+                availableCorners -= 2
+            } else if (match(point, "100 x00 000") && addWallIfCan(point.right())) {
+                availableCorners -= 2
+            } else if (match(point, "000 x00 100") && addWallIfCan(point.right())) {
+                availableCorners -= 2
             }
 //            if (availableCorners + countCorners() != parameters.verticesMin) {
 //                println("AAAAAAAA")
@@ -198,5 +175,5 @@ class  TunnelGenerator(private val parameters: Parameters) {
             .filter { it.value == Cell.WALL }
             .map { it.key }
             .map { match(it, "00 0x", "00 x0", "x0 00", "0x 00", "01 1x", "10 x1", "x1 10", "1x 01") }
-            .sum() - 4
+            .sum()
 }
