@@ -77,6 +77,8 @@ object Server {
         return resultFile.absolutePath
     }
 
+
+
     private fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>, Int) -> Sequence<Pair<Int, Command>>): Pair<Sequence<Pair<Int, Command>>, Int> {
         val mutSim = ref(isim)
         var sim by mutSim
@@ -90,6 +92,11 @@ object Server {
     }
 
     val LAMBDA_PROVIDER = URL("http://localhost:8332/")
+
+    fun checkForBlock(){
+          val client = JsonRpcHttpClient(LAMBDA_PROVIDER)
+        client("getblockinfo", Unit)
+    }
 
     private fun submitResults(params: SubmitParams) {
         val client = JsonRpcHttpClient(LAMBDA_PROVIDER)
@@ -134,6 +141,17 @@ fun main(args: Array<String>) {
         }
 
         start()
+
+
+
         log.debug("Start waiting for blocks")
+
+        runBlocking {
+            while (true) {
+                Server.checkForBlock()
+                delay(10000L)
+            }
+        }
+
     }
 }
