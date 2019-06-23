@@ -5,6 +5,7 @@ import org.graphstream.graph.Edge
 import org.graphstream.graph.Graph
 import org.graphstream.graph.Node
 import org.graphstream.graph.implementations.SingleGraph
+import org.jgrapht.alg.shortestpath.JohnsonShortestPaths
 import org.jgrapht.alg.tour.ChristofidesThreeHalvesApproxMetricTSP
 import org.jgrapht.graph.DefaultUndirectedWeightedGraph
 import org.jgrapht.graph.SimpleGraph
@@ -32,12 +33,15 @@ fun Graph.toJGraphT(): org.jgrapht.Graph<Node, Edge> {
         res.addEdge(lhv, rhv, it)
         res.setEdgeWeight(lhv, rhv, lhv.distance(rhv))
     }
+
+    val allShortestPaths = JohnsonShortestPaths(res)
+
     /* make graph complete */
     for(lhv in getNodeIterator<Node>()) {
         for(rhv in getNodeIterator<Node>()) {
             if(lhv !== rhv && !res.containsEdge(lhv, rhv)) {
                 res.addEdge(lhv, rhv, edgeFactory().newInstance("id", lhv, rhv, false))
-                res.setEdgeWeight(lhv, rhv, lhv.distance(rhv))
+                res.setEdgeWeight(lhv, rhv, allShortestPaths.getPathWeight(lhv, rhv))
             }
         }
     }
