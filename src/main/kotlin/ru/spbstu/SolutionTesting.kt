@@ -2,7 +2,6 @@ package ru.spbstu
 
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
-import ru.spbstu.util.info
 import ru.spbstu.util.log
 import java.io.File
 
@@ -14,12 +13,9 @@ sealed class ValidationResult {
 object Tester {
     lateinit var browser: ChromeDriver
     fun prepare() {
-        val file = File(
-                javaClass.classLoader.getResource("chromedriver.exe").file
-        )
         val chromeOptions = ChromeOptions()
         chromeOptions.setBinary("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe")
-        System.setProperty("webdriver.chrome.driver", file.absolutePath);
+        System.setProperty("webdriver.chrome.driver", "D:\\!9Semester\\icfpc-2019\\chromedriver.exe");
         browser = ChromeDriver(chromeOptions)
         browser.get("https://icfpcontest2019.github.io/solution_checker/")
     }

@@ -47,7 +47,7 @@ object Server {
                     "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
                     "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
                     "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
-                    "SuperSmarterAStarBot" to SuperSmarterAStarBot::run.withAutoTick(),
+//                    "SuperSmarterAStarBot" to SuperSmarterAStarBot::r.withAutoTick(),
                     "CloningBotSwarm" to ::CloningBotSwarm)
                     .map {
                         val map = GameMap(data)
