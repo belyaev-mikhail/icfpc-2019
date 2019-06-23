@@ -29,6 +29,7 @@ object Tester {
         boostSubmissionField.clear()
         if (booster != null) boostSubmissionField.sendKeys(booster)
         val submitButton = browser.findElementById("execute_solution")
+        Thread.sleep(1000)
         submitButton.click()
         val result = browser.findElementById("output")
         while (true) {
@@ -70,7 +71,9 @@ object Tester {
                 continue
             }
             for (item in sol) {
-                val result = run(item.second.absolutePath, desc.absolutePath, null)
+                val boosterFile = File(item.second.absolutePath.replace(".sol", ".buy"))
+                val booster = if (boosterFile.exists()) boosterFile.absolutePath else null
+                val result = run(item.second.absolutePath, desc.absolutePath, booster)
                 log.debug("${item.second.parentFile.name}/${item.second.name}: $result")
                 if (result is ValidationResult.Error) {
                     log.warn("${item.second.parentFile.name}/${item.second.name}: ${result.message}")
@@ -84,6 +87,6 @@ object Tester {
 
 fun main(args: Array<String>) {
     Tester.prepare()
-    Tester.validate("D:\\!9Semester\\icfpc-2019\\docs\\tasks", "D:\\!9Semester\\icfpc-2019\\fuck")
+    Tester.validate("D:\\!9Semester\\icfpc-2019\\docs\\tasks", "D:\\!9Semester\\icfpc-2019\\test")
     Tester.close()
 }
