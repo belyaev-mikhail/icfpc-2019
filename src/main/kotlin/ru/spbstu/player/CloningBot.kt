@@ -18,8 +18,8 @@ import ru.spbstu.wheels.toMutableMap
 import kotlin.math.ceil
 
 fun Node.getNearest(nodes: Iterable<Node>): Node {
-    val info = getAttribute<APSP.APSPInfo>(APSP.APSPInfo.ATTRIBUTE_NAME)
-    return nodes.minBy { info.getShortestPathTo(it.id).size() }!!
+    val info = getAttribute<APSP.APSPInfo>(APSP.APSPInfo.ATTRIBUTE_NAME)!!
+    return nodes.minBy { info.getShortestPathTo(it.id)?.size() ?: return this }!!
 }
 
 fun Node.getBlob() = getAttribute<SuperSmarterAStarBot.Blob>("blob")!!
