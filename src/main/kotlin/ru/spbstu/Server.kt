@@ -1,7 +1,7 @@
 package ru.spbstu
 
+import com.beust.klaxon.Klaxon
 import com.googlecode.jsonrpc4j.JsonRpcHttpClient
-import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.*
 import ru.spbstu.generator.GeneratorMain
 import ru.spbstu.map.GameMap
@@ -16,14 +16,17 @@ import ru.spbstu.util.toSolution
 import ru.spbstu.util.withAutoTick
 import ru.spbstu.wheels.*
 import java.io.File
-import java.net.InetSocketAddress
+import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.file.Paths
 
 
 data class SubmitParams(val block_num: Int, val sol_path: String, val desc_path: String)
+data class BlockData(val balances: Map<String, Int>, val block: Int, val puzzle: String, val task: String)
 
 object Server {
+
+    const val blocksDir = "block"
 
     private const val TIMEOUT_MS = 10L
 
@@ -78,7 +81,6 @@ object Server {
     }
 
 
-
     private fun handleMapSingle(isim: Simulator, bot: (MutableRef<Simulator>, Set<Point>, Int) -> Sequence<Pair<Int, Command>>): Pair<Sequence<Pair<Int, Command>>, Int> {
         val mutSim = ref(isim)
         var sim by mutSim
@@ -93,8 +95,8 @@ object Server {
 
     val LAMBDA_PROVIDER = URL("http://localhost:8332/")
 
-    fun checkForBlock(){
-          val client = JsonRpcHttpClient(LAMBDA_PROVIDER)
+    fun checkForBlock() {
+        val client = JsonRpcHttpClient(LAMBDA_PROVIDER)
         client("getblockinfo", Unit)
     }
 
@@ -102,6 +104,20 @@ object Server {
         val client = JsonRpcHttpClient(LAMBDA_PROVIDER)
         client("submit", params)
         log.debug("Submitted: $params")
+    }
+
+
+    fun fetchLastBlock(): BlockData? {
+        val url = URL("https://lambdacoin.org/lambda/getblockinfo")
+
+        val block = with(url.openConnection() as HttpURLConnection) {
+            requestMethod = "GET"  // optional default is GET
+            val data = inputStream.bufferedReader().readText()
+            Klaxon().parse<BlockData>(data)
+
+        }
+
+        return block
     }
 
     fun processBlock(path: String) {
@@ -126,32 +142,35 @@ object Server {
         }
     }
 
+    fun actualizeBlocks() {
+        val fetchedLastBlock = fetchLastBlock() ?: return
+        val rootDir = File(blocksDir)
+        rootDir.mkdirs()
+        val blockDirs = rootDir.walkTopDown().filter { it.isDirectory }.filterNot { it.name == rootDir.name }.toList()
+        val lastKnownBlock = blockDirs.map { it.name }.map { Integer.valueOf(it) }.maxBy { it }
+        if (lastKnownBlock != null && lastKnownBlock >= fetchedLastBlock.block) return
+
+        val blockDir = File(rootDir, "${fetchedLastBlock.block}")
+        blockDir.mkdirs()
+
+        val taskFile = File(blockDir, "task.desc")
+        val puzzleFile = File(blockDir, "puzzle.cond")
+
+        taskFile.writeText(fetchedLastBlock.task.trim())
+        puzzleFile.writeText(fetchedLastBlock.puzzle.trim())
+
+        processBlock(blockDir.absolutePath)
+
+    }
 
 }
 
-
 fun main(args: Array<String>) {
-    HttpServer.create(InetSocketAddress(32345), 0).apply {
-        createContext("/newBlock") { http ->
-            val newBlockPath = http.requestBody.bufferedReader().readText().trim()
-            Server.pool.executor.execute {
-                Server.processBlock(newBlockPath)
-            }
-            log.debug("Accepted new block: $newBlockPath")
+    log.debug("Start waiting for blocks")
+    runBlocking {
+        while (true) {
+            Server.actualizeBlocks()
+            delay(10000L)
         }
-
-        start()
-
-
-
-        log.debug("Start waiting for blocks")
-//
-//        runBlocking {
-//            while (true) {
-//                Server.checkForBlock()
-//                delay(10000L)
-//            }
-//        }
-
     }
 }
