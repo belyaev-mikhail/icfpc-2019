@@ -36,11 +36,13 @@ fun Graph.toJGraphT(): org.jgrapht.Graph<Node, Edge> {
 
     val allShortestPaths = JohnsonShortestPaths(res)
 
+    var counter = 0
+
     /* make graph complete */
     for(lhv in getNodeIterator<Node>()) {
         for(rhv in getNodeIterator<Node>()) {
             if(lhv !== rhv && !res.containsEdge(lhv, rhv)) {
-                res.addEdge(lhv, rhv, edgeFactory().newInstance("id", lhv, rhv, false))
+                res.addEdge(lhv, rhv, edgeFactory().newInstance("synth${counter++}", lhv, rhv, false))
                 res.setEdgeWeight(lhv, rhv, allShortestPaths.getPathWeight(lhv, rhv))
             }
         }
@@ -54,6 +56,15 @@ object Christofides {
         val chris = ChristofidesThreeHalvesApproxMetricTSP<Node, Edge>()
 
         val tour = chris.getTour(graph.toJGraphT())
+//
+//        val newGraph = SingleGraph("chris-display")
+//        for(v in tour.vertexList.toSet()) {
+//            newGraph.addNode<Node>(v.id).addAttributes(v.attributeKeySet.map { it to v.getAttribute<Any?>(it) }.toMap())
+//        }
+//        for(e in tour.edgeList.toSet()) {
+//            newGraph.addEdge<Edge>(e.id, e.getNode0<Node>().id, e.getNode1<Node>().id)
+//        }
+//        newGraph.display(false)
 
         return tour.vertexList
     }
