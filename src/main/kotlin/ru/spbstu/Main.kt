@@ -55,7 +55,8 @@ object Main : CliktCommand() {
                     "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
                     "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick(),
                     "SmartAsFuckBot" to SmartAsFuckBot.withAutoTick(),
-                    "CloningBotSwarm" to ::CloningBotSwarm)
+                    "CloningBotSwarm" to ::CloningBotSwarm,
+                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
@@ -95,6 +96,11 @@ object Main : CliktCommand() {
         val path = bot(mutSim, sim.gameMap.cells.keys, 0).memoize()
 
         if (gui) {
+            val blobs = SuperSmarterAStarBot.findBlobs(sim.gameMap).let {
+                SuperSmarterAStarBot.optimizeBlobs(it)
+            }
+            val segmentFrame = SuperSmarterAStarBot.display(guiCellSize, sim.gameMap, blobs)
+
             val frame = SimFrame(guiCellSize) { mutSim.value }
             for (command in path) {
                 sim = sim.apply(command.first, command.second)
