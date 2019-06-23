@@ -44,18 +44,18 @@ object Main : CliktCommand() {
 
         val best = run {
             val paths = listOf(
+//                    "astarBot" to ::astarBot.withAutoTick(),
+//                    "enclosedAstarBot" to ::enclosedAstarBot.withAutoTick(),
+//                    "smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
+//                    "evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
+//                    "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
+//                    "smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
+//                    "evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
+//                    "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
+//                    "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
                     "smarterPrioritySimulatingAstarBot" to ::smarterPrioritySimulatingAstarBot.withAutoTick(),
                     "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
                     "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
-                    "astarBot" to ::astarBot.withAutoTick(),
-                    "enclosedAstarBot" to ::enclosedAstarBot.withAutoTick(),
-                    "smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
-                    "evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
-                    "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
-                    "smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
-                    "evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
-                    "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
-                    "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
                     "SuperSmarterAStarBot" to SuperSmarterAStarBot::run.withAutoTick(),
                     "CloningBotSwarm" to ::CloningBotSwarm,
                     "SimulatingCloningBotSwarm" to ::SimulatingCloningBotSwarm)
