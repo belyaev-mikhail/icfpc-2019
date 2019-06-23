@@ -92,13 +92,13 @@ fun GameMap(corners: List<Point>, obstacles: List<Obstacle>, boosters: List<Boos
             }
         }
     }
-    for (x in minX..maxX) {
-        cells[Point(x, minY - 1)] = Cell.Superwall
-        cells[Point(x, maxY + 1)] = Cell.Superwall
+    for (x in -1..maxX) {
+        cells[Point(x, -1)] = Cell.Superwall
+        cells[Point(x, maxY)] = Cell.Superwall
     }
-    for (y in minY..maxY) {
-        cells[Point(minX - 1, y)] = Cell.Superwall
-        cells[Point(maxX + 1, y)] = Cell.Superwall
+    for (y in -1..maxY) {
+        cells[Point(-1, y)] = Cell.Superwall
+        cells[Point(maxX, y)] = Cell.Superwall
     }
 
     for (obstacle in obstacles) {
