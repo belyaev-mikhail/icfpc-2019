@@ -4,10 +4,7 @@ import org.graphstream.algorithm.APSP
 import org.graphstream.graph.Graph
 import org.graphstream.graph.Node
 import ru.spbstu.map.*
-import ru.spbstu.sim.Command
-import ru.spbstu.sim.NOOP
-import ru.spbstu.sim.Simulator
-import ru.spbstu.sim.TICK
+import ru.spbstu.sim.*
 import ru.spbstu.util.withIdx
 import ru.spbstu.wheels.MutableRef
 import ru.spbstu.wheels.getValue
@@ -35,12 +32,120 @@ fun pointsAStart(point: Point, blobMap: Set<Point>, gameMap: GameMap) = aStarSea
         }
 )
 
-
 fun Graph.getCurrentNode(point: Point, sim: Simulator): Node =
         this.firstOrNull { point in it.getBlob().points } ?: run {
         val nearestBlobPoint = pointsAStart(point, this.flatMap { it.getBlob().points }.toSet(), sim.gameMap)!!.first()
         this.first { nearestBlobPoint in it.getBlob().points }
     }
+
+
+fun applyMasterSimulatingBoosters(sim: Simulator, idx: Int = 0) = sequence {
+    when {
+        BoosterType.CLONING in sim.boosters && sim.gameMap[sim.currentRobots[idx].pos].booster == BoosterType.MYSTERY -> {
+            yield(CLONE)
+        }
+        BoosterType.MANIPULATOR_EXTENSION in sim.boosters -> {
+            val manipulatorXRange = sim.currentRobots[idx].manipulators.map { it.v0 }.sorted()
+            val manipulatorYRange = sim.currentRobots[idx].manipulators.map { it.v1 }.sorted()
+
+            if (manipulatorXRange.toSet().size == 1) { // vertical extension
+                val newX = manipulatorXRange.first()
+
+                val yLeft = manipulatorYRange.first()
+                val yRight = manipulatorYRange.last()
+
+                val newY = if (Math.abs(yLeft) < Math.abs(yRight)) {
+                    yLeft - 1
+                } else {
+                    yRight + 1
+                }
+
+                val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
+
+                // sim.apply(extensionCommand)
+
+                yield(extensionCommand)
+
+            } else { // horizontal extension
+                val newY = manipulatorYRange.first()
+
+                val xLeft = manipulatorXRange.first()
+                val xRight = manipulatorXRange.last()
+
+                val newX = if (Math.abs(xLeft) < Math.abs(xRight)) {
+                    xLeft - 1
+                } else {
+                    xRight + 1
+                }
+
+                val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
+
+                // sim.apply(extensionCommand)
+
+                yield(extensionCommand)
+            }
+        }
+        BoosterType.FAST_WHEELS in sim.boosters && BoosterType.FAST_WHEELS !in sim.currentRobots[idx].activeBoosters -> {
+            val speedUpCommand = USE_FAST_WHEELS
+            yield(speedUpCommand)
+        }
+        BoosterType.DRILL in sim.boosters && BoosterType.DRILL !in sim.currentRobots[idx].activeBoosters -> {
+            val useDrillCommand = USE_DRILL
+            yield(useDrillCommand)
+        }
+    }
+}
+
+
+fun applyNonsimulatingMasterSimulatingBoosters(sim: Simulator, idx: Int = 0) = sequence {
+    when {
+        BoosterType.CLONING in sim.boosters && sim.gameMap[sim.currentRobots[idx].pos].booster == BoosterType.MYSTERY -> {
+            yield(CLONE)
+        }
+        BoosterType.MANIPULATOR_EXTENSION in sim.boosters -> {
+            val manipulatorXRange = sim.currentRobots[idx].manipulators.map { it.v0 }.sorted()
+            val manipulatorYRange = sim.currentRobots[idx].manipulators.map { it.v1 }.sorted()
+
+            if (manipulatorXRange.toSet().size == 1) { // vertical extension
+                val newX = manipulatorXRange.first()
+
+                val yLeft = manipulatorYRange.first()
+                val yRight = manipulatorYRange.last()
+
+                val newY = if (Math.abs(yLeft) < Math.abs(yRight)) {
+                    yLeft - 1
+                } else {
+                    yRight + 1
+                }
+
+                val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
+
+                // sim.apply(extensionCommand)
+
+                yield(extensionCommand)
+
+            } else { // horizontal extension
+                val newY = manipulatorYRange.first()
+
+                val xLeft = manipulatorXRange.first()
+                val xRight = manipulatorXRange.last()
+
+                val newX = if (Math.abs(xLeft) < Math.abs(xRight)) {
+                    xLeft - 1
+                } else {
+                    xRight + 1
+                }
+
+                val extensionCommand = ATTACH_MANUPULATOR(newX, newY)
+
+                // sim.apply(extensionCommand)
+
+                yield(extensionCommand)
+            }
+        }
+    }
+}
+
 
 fun CloningBotWithSegmentationByChristofidesSwarm(simref: MutableRef<Simulator>, points: Set<Point>,
                                                   botKtor: BotType = ::theMostSmartestPrioritySimulatingAstarBot,
@@ -265,7 +370,7 @@ fun CloningBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int) =
             while (true) {
                 val sim by simref
 
-                yieldAll(applySimulatingBoosters(sim, idx))
+                yieldAll(applyMasterSimulatingBoosters(sim, idx))
 
                 val currentRobot = { sim.currentRobots[idx] }
 
@@ -279,7 +384,7 @@ fun CloningBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int) =
                     val local = simulatingAStarForWalking(sim, closestBooster, idx)
                     yieldAll(local)
 
-                    yieldAll(applySimulatingBoosters(sim, idx))
+                    yieldAll(applyMasterSimulatingBoosters(sim, idx))
 
                 } else {
                     break
@@ -292,7 +397,7 @@ fun NonsimulatingCloningBot(simref: MutableRef<Simulator>, points: Set<Point>, i
             while (true) {
                 val sim by simref
 
-                yieldAll(applyBoosters(sim, idx))
+                yieldAll(applyNonsimulatingMasterSimulatingBoosters(sim, idx))
 
                 val currentRobot = { sim.currentRobots[idx] }
 
@@ -306,7 +411,7 @@ fun NonsimulatingCloningBot(simref: MutableRef<Simulator>, points: Set<Point>, i
                     val local = astarForWalking(sim, closestBooster, idx)
                     yieldAll(local)
 
-                    yieldAll(applyBoosters(sim, idx))
+                    yieldAll(applyNonsimulatingMasterSimulatingBoosters(sim, idx))
 
                 } else {
                     break

@@ -66,9 +66,9 @@ fun simulatingAStarForWalking(sim: Simulator, target: Point, idx: Int) = aStarSe
 
 fun applySimulatingBoosters(sim: Simulator, idx: Int = 0) = sequence {
     when {
-        BoosterType.CLONING in sim.boosters && sim.gameMap[sim.currentRobots[idx].pos].booster == BoosterType.MYSTERY -> {
-            yield(CLONE)
-        }
+//        BoosterType.CLONING in sim.boosters && sim.gameMap[sim.currentRobots[idx].pos].booster == BoosterType.MYSTERY -> {
+//            yield(CLONE)
+//        }
         BoosterType.MANIPULATOR_EXTENSION in sim.boosters -> {
             val manipulatorXRange = sim.currentRobots[idx].manipulators.map { it.v0 }.sorted()
             val manipulatorYRange = sim.currentRobots[idx].manipulators.map { it.v1 }.sorted()
