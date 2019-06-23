@@ -244,7 +244,7 @@ object SmartAsFuckBot: BotType {
 
 
     var k = 0
-    private fun zipAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) =
+    fun zipAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) =
             sequence {
                 val pointQueue = TreeSet<Point> { o1, o2 ->
                     if (o1.v0.compareTo(o2.v0) == 0)
@@ -283,7 +283,7 @@ object SmartAsFuckBot: BotType {
                     val allFreeCells =
                             cells.filter { it.value.status == Status.EMPTY }
                                     .map { it.key }
-                    val curCoor = simref.value.currentRobots[0].pos
+                    val curCoor = currentRobot().pos
 
 
 //                    val freeAndWrapCellsFromSameRow =
@@ -321,7 +321,7 @@ object SmartAsFuckBot: BotType {
                     if (pointQueue.isNotEmpty()) {
                         val nodeToGo = pointQueue.first()
 //                        println("FINDING ROUTE TO ${nodeToGo} FROM ${sim.currentRobots[idx].pos}")
-                        if (nodeToGo.v1 < sim.currentRobots[idx].pos.v1) {
+                        if (nodeToGo.v1 < currentRobot().pos.v1) {
                             val route =
                                     astarWithoutTurnsAndFixedCommands(sim, nodeToGo, listOf(MOVE_RIGHT, MOVE_LEFT, MOVE_DOWN), idx)
 //                            println("ROUTE = $route")
