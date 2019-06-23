@@ -20,11 +20,14 @@ object Tester {
         browser.get("https://icfpcontest2019.github.io/solution_checker/")
     }
 
-    fun run(solution: String, description: String): ValidationResult {
+    fun run(solution: String, description: String, booster: String?): ValidationResult {
         val taskSubmissionField = browser.findElementById("submit_task")
         taskSubmissionField.sendKeys(description)
         val solSubmissionField = browser.findElementById("submit_solution")
         solSubmissionField.sendKeys(solution)
+        val boostSubmissionField = browser.findElementById("submit_boosters")
+        boostSubmissionField.clear()
+        if (booster != null) boostSubmissionField.sendKeys(booster)
         val submitButton = browser.findElementById("execute_solution")
         submitButton.click()
         val result = browser.findElementById("output")
@@ -67,7 +70,7 @@ object Tester {
                 continue
             }
             for (item in sol) {
-                val result = run(item.second.absolutePath, desc.absolutePath)
+                val result = run(item.second.absolutePath, desc.absolutePath, null)
                 log.debug("${item.second.parentFile.name}/${item.second.name}: $result")
                 if (result is ValidationResult.Error) {
                     log.warn("${item.second.parentFile.name}/${item.second.name}: ${result.message}")
@@ -81,6 +84,6 @@ object Tester {
 
 fun main(args: Array<String>) {
     Tester.prepare()
-    Tester.validate("D:\\!9Semester\\icfpc-2019\\docs\\tasks", "D:\\!9Semester\\icfpc-2019\\tmp")
+    Tester.validate("D:\\!9Semester\\icfpc-2019\\docs\\tasks", "D:\\!9Semester\\icfpc-2019\\fuck")
     Tester.close()
 }
