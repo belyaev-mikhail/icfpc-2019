@@ -101,7 +101,7 @@ fun astarWithoutTurnsWalk(sim: Simulator, target: Point, idx: Int = 0): List<Com
     )?.dropLast(1).orEmpty().map { it.v1 }.reversed()
 }
 
-fun astarWithoutTurnsAndUpsWalk(sim: Simulator, target: Point, idx: Int = 0): List<Command> {
+fun astarWithoutTurnsAndFixedCommands(sim: Simulator, target: Point, commands: List<Command>, idx: Int = 0): List<Command> {
     val robot = { sim.currentRobots[idx] }
 
     check(!sim.gameMap[target].status.isWall)
@@ -115,7 +115,6 @@ fun astarWithoutTurnsAndUpsWalk(sim: Simulator, target: Point, idx: Int = 0): Li
                 robot.pos == target
             },
             neighbours = { (me, _) ->
-                val commands = listOf(MOVE_RIGHT, MOVE_LEFT, MOVE_DOWN)
                 commands.map { RobotAndCommand(me.doCommand(it), it) }
                         .asSequence()
                         .filter { !sim.gameMap[it.v0.pos].status.isWall }

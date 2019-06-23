@@ -6,10 +6,7 @@ import org.graphstream.graph.Edge
 import org.graphstream.graph.Graph
 import org.graphstream.graph.Node
 import org.graphstream.graph.implementations.SingleGraph
-import ru.spbstu.ktuples.compareTo
-import ru.spbstu.ktuples.sorted
 import ru.spbstu.map.*
-import ru.spbstu.player.evenSmarterPriorityAstarBot
 import ru.spbstu.sim.*
 import ru.spbstu.util.withIdx
 import ru.spbstu.wheels.*
@@ -210,25 +207,52 @@ object SmartAsFuckBot {
             val orderedBlobs = getBlobsOrdered(rootNode, graph.getNodeSet<Node>().toList(), kruskal.getTreeEdges<Edge>().toList())
 
             for (blob in orderedBlobs) {
-                println("BLOB")
                 yieldAll(zipAstarBot(simref, blob.points, idx))
             }
         }
     }
 
 
-    fun Point.getNearestUpNeighbor(points: Set<Point>): Point? =
-            points.map { it to it.v1 - this.v1 }
-                    .filter { it.second > 0 }
-                    .sortedBy { it.second }
-                    .map { it.first }
-                    .minBy { abs(it.v0 - this.v0) }
+    fun Point.getNearestUpNeighbor(points: Set<Point>): Point? {
+        val sorted = points.map { it to it.v1 - this.v1 }
+                .filter { it.second > 0 }
+                .sortedBy { it.second }
+        if (sorted.isEmpty()) return null
+
+        return sorted
+                .filter { it.second == sorted.first().second }
+                .map { it.first }
+                .minBy { abs(it.v0 - this.v0) }
+    }
+
+    private fun getDownestNode(sim: Simulator, points: Set<Point>, idx: Int): Point? {
+        val curRobCoor = sim.currentRobots[idx].pos
+        //Go to downest node
+        val curFreeNodes =
+                sim.gameMap.cells.filter { it.key in points }
+                        .filter { it.value.status == Status.EMPTY }
+                        .map { it.key }
+                        .sortedBy { it.v1 }
+        if (curFreeNodes.toList().isEmpty()) return null
+//        println("curFreeNodes = ${curFreeNodes.toList()}")
+//        println("ROB = ${curRobCoor}")
+        //Most down node
+        return curFreeNodes
+                .filter { it.v1 == curFreeNodes.first().v1 }
+                .minBy { abs(curRobCoor.v0 - it.v0) }
+    }
 
 
     var k = 0
     private fun zipAstarBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) =
             sequence {
-                val pointQueue = TreeSet<Point> { o1, o2 -> if (o1.v0.compareTo(o2.v0) == 0) o1.v1.compareTo(o2.v1) else o1.v0.compareTo(o2.v0) }
+                val pointQueue = TreeSet<Point> { o1, o2 ->
+                    if (o1.v0.compareTo(o2.v0) == 0)
+                        o1.v1.compareTo(o2.v1)
+                    else
+                        o1.v0.compareTo(o2.v0)
+                }
+                var flagToBeginFromDown = true
                 while (true) {
                     val sim by simref
 
@@ -278,19 +302,30 @@ object SmartAsFuckBot {
                                     .filter { it.v1 == curCoor.v1 }
                                     .sortedBy { it.v0 }
 
+                    //TODO first go to down left||right node
+                    if (flagToBeginFromDown) {
+                        val beginNode = getDownestNode(sim, points, idx) ?: break
+//                        println("BEGINING FROM $beginNode")
+                        val path = astarWithoutTurnsWalk(sim, beginNode, idx)
+                        yieldAll(path)
+                        flagToBeginFromDown = false
+                        continue
+                    }
+
 
                     //Update pointQueue
-                    println("BEFORE = ${pointQueue}")
+//                    println("BEFORE = ${pointQueue}")
                     pointQueue.removeAll { it !in allFreeCells }
-                    println("AFTER = ${pointQueue}")
+//                    println("AFTER = ${pointQueue}")
 
                     //Check for availability of nodes from queue
                     if (pointQueue.isNotEmpty()) {
                         val nodeToGo = pointQueue.first()
-                        println("FINDING ROUTE TO ${nodeToGo} FROM ${sim.currentRobots[idx].pos}")
+//                        println("FINDING ROUTE TO ${nodeToGo} FROM ${sim.currentRobots[idx].pos}")
                         if (nodeToGo.v1 < sim.currentRobots[idx].pos.v1) {
-                            val route = astarWithoutTurnsAndUpsWalk(sim, nodeToGo, idx)
-                            println("ROUTE = $route")
+                            val route =
+                                    astarWithoutTurnsAndFixedCommands(sim, nodeToGo, listOf(MOVE_RIGHT, MOVE_LEFT, MOVE_DOWN), idx)
+//                            println("ROUTE = $route")
                             if (route.isNotEmpty()) {
                                 yieldAll(route)
                                 continue
@@ -304,55 +339,76 @@ object SmartAsFuckBot {
 //                    println("node = $nodeToGo")
 
 
-                    println("WALLS = ${cells.filter { it.value.status == Status.WALL || it.value.status == Status.SUPERWALL }.toList()}")
-                    println("Free cells = ${freeCellsFromSameRow.toList()}")
-                    println("curRobot coor = ${simref.value.currentRobots[0].pos}")
-                    println("obstaclesFromRow = ${obstaclesFromRow.toList()}")
+//                    println("WALLS = ${cells.filter { it.value.status == Status.WALL || it.value.status == Status.SUPERWALL }.toList()}")
+//                    println("Free cells = ${freeCellsFromSameRow.toList()}")
+//                    println("curRobot coor = ${simref.value.currentRobots[0].pos}")
+//                    println("obstaclesFromRow = ${obstaclesFromRow.toList()}")
                     val firstObstacleFromLeft = obstaclesFromRow.findLast { it.v0 < curCoor.v0 }?.v0 ?: Int.MIN_VALUE
                     val firstObstacleFromRight = obstaclesFromRow.find { it.v0 > curCoor.v0 }?.v0 ?: Int.MAX_VALUE
-                    println("OBS1 = $firstObstacleFromLeft")
-                    println("OBS2 = $firstObstacleFromRight")
+//                    println("OBS1 = $firstObstacleFromLeft")
+//                    println("OBS2 = $firstObstacleFromRight")
                     val avialibleCells = freeCellsFromSameRow
                             .filter { it.v0 in (firstObstacleFromLeft + 1)..(firstObstacleFromRight - 1) }
                             .sortedBy { it.v0 }
                     val freeCells = freeCellsFromSameRow.filter { it !in avialibleCells }
-                    freeCells.forEach { pointQueue.add(it); println("ADDING $it to queue") }
-                    println("AV = ${avialibleCells.toList()}")
-                    println("freeCells = ${freeCells.toList()}")
+                    freeCells.forEach { pointQueue.add(it) }
+//                    println("AV = ${avialibleCells.toList()}")
+//                    println("freeCells = ${freeCells.toList()}")
                     var fullRow = (avialibleCells + curCoor).sortedBy { it.v0 }
                     var indexOfRobot = fullRow.indexOf(curCoor)
-                    println("IND = $indexOfRobot")
-                    println("FULL ROW = ${fullRow.toList()}")
+//                    println("IND = $indexOfRobot")
+//                    println("FULL ROW = ${fullRow.toList()}")
                     val commands = mutableListOf<Command>()
-                    var newCoord = curCoor
+                    var newCoor = curCoor
                     //Go to left
                     fullRow.filterIndexed { index, _ -> index < indexOfRobot }.find { it.v0 < curCoor.v0 }?.let {
-                        repeat(curCoor.v0 - it.v0) { commands.add(MOVE_LEFT); newCoord = Point(newCoord.v0 - 1, newCoord.v1) }
+                        repeat(curCoor.v0 - it.v0) { commands.add(MOVE_LEFT); newCoor = Point(newCoor.v0 - 1, newCoor.v1) }
                     }
-                    println("newCoord = $newCoord")
-                    fullRow = (avialibleCells + newCoord).sortedBy { it.v0 }
-                    indexOfRobot = fullRow.indexOf(newCoord)
-                    println("index = $indexOfRobot")
+//                    println("newCoord = $newCoor")
+                    fullRow = (avialibleCells + newCoor).sortedBy { it.v0 }
+                    indexOfRobot = fullRow.indexOf(newCoor)
+//                    println("index = $indexOfRobot")
                     //Go to right
                     fullRow.filterIndexed { index, _ -> index > indexOfRobot }.findLast { it.v0 > curCoor.v0 }?.let {
-                        repeat(it.v0 - newCoord.v0) { commands.add(MOVE_RIGHT); newCoord = Point(newCoord.v0 + 1, newCoord.v1) }
+                        repeat(it.v0 - newCoor.v0) { commands.add(MOVE_RIGHT); newCoor = Point(newCoor.v0 + 1, newCoor.v1) }
                     }
-                    println("END COOR = ${newCoord}")
-                    println("FINDING Neighbor FROM ${Point(newCoord.v0, newCoord.v1)} in ${allFreeCells.toSet()}")
-                    val n = Point(newCoord.v0, newCoord.v1).getNearestUpNeighbor(allFreeCells.toSet()) ?: break
-                    println("NEIGHBOR = $n")
+//                    println("END COOR = ${newCoor}")
+//                    println("FINDING Neighbor FROM ${Point(newCoor.v0, newCoor.v1)} in ${allFreeCells.toSet()}")
+                    val n = Point(newCoor.v0, newCoor.v1).getNearestUpNeighbor(allFreeCells.toSet())
+//                    println("NEIGHBOR = $n")
                     yieldAll(commands)
                     commands.clear()
 
-                    //GO TO NEAREST Neighbor
-                    val pathToNeigh = astarWithoutTurnsWalk(sim, n, idx)
-                    yieldAll(pathToNeigh)
+                    if (n != null) {
+                        //GO TO NEAREST Neighbor
+                        val pathToNeighWithoutDowns =
+                                astarWithoutTurnsAndFixedCommands(sim, n, listOf(MOVE_RIGHT, MOVE_LEFT, MOVE_UP), idx)
+                        if (pathToNeighWithoutDowns.isNotEmpty()) {
+                            yieldAll(pathToNeighWithoutDowns)
+                        } else {
+                            //Most down node
+//                            println("SEARCHING NEW NODE")
+                            val newNode = getDownestNode(sim, points, idx) ?: break
+                            //Go to node else break
+                            val path = astarWithoutTurnsWalk(sim, newNode, idx)
+                            yieldAll(path)
+                        }
+                    } else {
+                        //Most down node
+//                        println("SEARCHING NEW NODE")
+                        val newNode = getDownestNode(sim, points, idx) ?: break
+                        //Go to node else break
+                        val path = astarWithoutTurnsWalk(sim, newNode, idx)
+                        yieldAll(path)
+                    }
                     ++k
 
-                    println("CUR QUEUE = ${pointQueue}")
-//                    if (k == 20)
+//                    println("CUR QUEUE = ${pointQueue}")
+//                    if (k == 2) {
+//                        Thread.sleep(100000)
 //                        System.exit(0)
-                    println("\n\n")
+//                    }
+//                    println("\n\n")
                     //println("allFreeCells = ${allFreeCells.toList()}")
 //                    println("target = $target")
 //                    System.exit(0)
