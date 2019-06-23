@@ -59,8 +59,8 @@ object Main : CliktCommand() {
                     "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
                     "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick(),
                     "SmartAsFuckBot" to SmartAsFuckBot.withAutoTick(),
-                    "CloningBotSwarm" to ::CloningBotSwarm.bind(_2, SuperSmarterAStarBot),
-                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm.bind(_2, SuperSmarterAStarBot))
+//                  "CloningBotSwarm" to ::CloningBotSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
+                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot))
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
@@ -117,6 +117,11 @@ object Main : CliktCommand() {
             for (command in path) {
                 sim = sim.apply(command.first, command.second)
             }
+        }
+
+        if (!sim.hasSolved) {
+            log.error("You have been fucked!")
+            return path to Int.MAX_VALUE
         }
 
         return path to sim.time
