@@ -165,7 +165,8 @@ object Main : CliktCommand() {
         if (useAbsoluteMapPath) {
             runBlocking(pool) { handleMap(map) }
         } else if (map != "all") {
-            runBlocking(pool) { handleMap("docs/tasks/prob-$map.desc") }
+            val filename = "000$map".takeLast(3)
+            runBlocking(pool) { handleMap("docs/tasks/prob-$filename.desc") }
         } else {
             runBlocking(pool) {
                 File("docs/tasks").walkTopDown().toList().filter { it.extension == "desc" }.map {
