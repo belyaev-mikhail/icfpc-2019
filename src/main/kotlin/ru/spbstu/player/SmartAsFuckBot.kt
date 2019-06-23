@@ -302,7 +302,7 @@ object SmartAsFuckBot {
                                     .filter { it.v1 == curCoor.v1 }
                                     .sortedBy { it.v0 }
 
-                    //TODO first go to down left||right node
+                    //first go to down left||right node
                     if (flagToBeginFromDown) {
                         val beginNode = getDownestNode(sim, points, idx) ?: break
 //                        println("BEGINING FROM $beginNode")
