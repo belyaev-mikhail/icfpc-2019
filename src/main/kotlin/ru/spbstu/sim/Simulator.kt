@@ -405,8 +405,9 @@ internal constructor(val ignore: Any?,
 
 }
 
-class SimFrame(val cellSize: Int, val mutSim: () -> Simulator) : JFrame() {
+class SimFrame(val iname: String, val cellSize: Int, val mutSim: () -> Simulator) : JFrame() {
     init {
+        title = iname
         add(panel())
         pack()
         isVisible = true
