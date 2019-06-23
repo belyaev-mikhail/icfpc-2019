@@ -5,10 +5,7 @@ import ru.spbstu.map.Cell
 import ru.spbstu.map.Point
 import ru.spbstu.map.Status
 import ru.spbstu.map.euclidDistance
-import ru.spbstu.sim.ATTACH_MANUPULATOR
-import ru.spbstu.sim.CLONE
-import ru.spbstu.sim.Robot
-import ru.spbstu.sim.Simulator
+import ru.spbstu.sim.*
 import ru.spbstu.util.withIdx
 import ru.spbstu.wheels.MutableRef
 import ru.spbstu.wheels.getValue
