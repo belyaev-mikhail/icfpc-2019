@@ -18,12 +18,10 @@ data class SimulatorAndCommand(val sim: Simulator, val command: Command, val idx
     }
 
     override fun equals(other: Any?): Boolean = other is SimulatorAndCommand
-            && robot.pos == other.robot.pos
-            && robot.orientation == other.robot.orientation
-            && robot.activeBoosters == other.robot.activeBoosters
-            && idx == other.idx
+            && robot.pos == other.robot.pos && robot.orientation == other.robot.orientation && idx == other.idx
+//            && robot.activeBoosters == other.robot.activeBoosters
 
-    override fun hashCode(): Int = Objects.hash(robot.pos, robot.orientation, robot.activeBoosters, idx)
+    override fun hashCode(): Int = Objects.hash(robot.pos, robot.orientation /*, robot.activeBoosters */, idx)
 }
 
 fun simulatingAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
@@ -36,7 +34,7 @@ fun simulatingAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
         },
         goal = { it.sim.gameMap[target].status == Status.WRAP },
         neighbours = { it.neighbors.asSequence() }
-)?.dropLast(1).orEmpty().map { it.command }.reversed()
+)?.dropLast(1)?.map { it.command }?.reversed() ?: listOf(NOOP)
 
 fun simulatingEnclosedAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
         SimulatorAndCommand(sim, NOOP, idx),
@@ -64,7 +62,7 @@ fun simulatingAStarForWalking(sim: Simulator, target: Point, idx: Int) = aStarSe
         },
         goal = { target == it.sim.currentRobots[it.idx].pos },
         neighbours = { it.neighbors.asSequence() }
-)?.dropLast(1).orEmpty().map { it.command }.reversed()
+)?.dropLast(1)?.map { it.command }?.reversed() ?: listOf(NOOP)
 
 fun applySimulatingBoosters(sim: Simulator, idx: Int = 0) = sequence {
     when {

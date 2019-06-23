@@ -136,7 +136,7 @@ object Main : CliktCommand() {
         val path = bot(mutSim, sim.gameMap.cells.keys, 0).memoize()
 
         if (gui) {
-            val frame = SimFrame(guiCellSize) { mutSim.value }
+            val frame = SimFrame(message, guiCellSize) { mutSim.value }
             for (command in path) {
                 sim = sim.apply(command.first, command.second)
                 delay((1000.0 / speed).toLong())
