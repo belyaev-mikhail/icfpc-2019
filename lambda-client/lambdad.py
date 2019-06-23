@@ -13,32 +13,6 @@ import os
 import configparser
 from datetime import datetime
 
-import sched, time
-s = sched.scheduler(time.time, time.sleep)
-def do_something():
-    try:
-        print('update')
-        block_info = getblockinfo()
-        block_num = block_info['block']
-
-        if not have_block(block_num):
-            save_block(block_info)
-
-        # Fill in gaps if they exist
-        for b in range(1, block_num):
-            if not have_block(b):
-                save_block(getblockinfo(b))
-    except Exception as e:
-        now = datetime.now().strftime("%c")
-        print("[{}] Update exception: {}".format(now, e))
-
-
-
-def update_forever():
-    while True:
-        do_something()
-        time.sleep(15)
-
 
 # https://stackoverflow.com/questions/12435211/python-threading-timer-repeat-function-every-n-seconds
 def every(interval):
@@ -216,9 +190,6 @@ if __name__ == '__main__':
         parser.error('Port must be an integer.')
 
     updater = update()
-
-    t = Process(target=update_forever)
-    t.start()
 
     print('started')
     run_simple(args.bind, args.port, application)
