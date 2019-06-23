@@ -51,12 +51,15 @@ object Main : CliktCommand() {
                     "smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
                     "evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
                     "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
-                    "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
+                    "prioritySimulatingAstarBot" to ::prioritySimulatingAstarBot.withAutoTick(),
+                    "smarterPrioritySimulatingAstarBot" to :: smarterPrioritySimulatingAstarBot.withAutoTick(),
                     "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
+                    "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
                     "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick(),
-                    "SmartAsFuckBot" to SmartAsFuckBot.withAutoTick(),
-                    "CloningBotSwarm" to ::CloningBotSwarm,
-                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm)
+                    "SmartAsFuckBot" to SmartAsFuckBot.withAutoTick())//,
+                    // TODO: fix the cloning swarms, because they return empty solutions now
+//                    "CloningBotSwarm" to ::CloningBotSwarm,
+//                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm)
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)
