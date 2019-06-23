@@ -1,11 +1,9 @@
 package ru.spbstu.player
 
 import org.graphstream.algorithm.APSP
+import org.graphstream.graph.Graph
 import org.graphstream.graph.Node
-import ru.spbstu.map.BoosterType
-import ru.spbstu.map.Cell
-import ru.spbstu.map.Point
-import ru.spbstu.map.Status
+import ru.spbstu.map.*
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.NOOP
 import ru.spbstu.sim.Simulator
@@ -23,6 +21,26 @@ fun Node.getNearest(nodes: Iterable<Node>): Node {
 }
 
 fun Node.getBlob() = getAttribute<SuperSmarterAStarBot.Blob>("blob")!!
+
+fun pointsAStart(point: Point, blobMap: Set<Point>, gameMap: GameMap) = aStarSearch(
+        from = point,
+        goal = {
+            it in blobMap
+        },
+        neighbours = {
+            it.neighbours().filterNot { gameMap[it].status.isWall }.asSequence()
+        },
+        heur = { n ->
+            blobMap.map { n.manhattanDistance(it) }.min()!!.toDouble()
+        }
+)
+
+
+fun Graph.getCurrentNode(point: Point, sim: Simulator): Node =
+        this.firstOrNull { point in it.getBlob().points } ?: run {
+        val nearestBlobPoint = pointsAStart(point, this.flatMap { it.getBlob().points }.toSet(), sim.gameMap)!!.first()
+        this.first { nearestBlobPoint in it.getBlob().points }
+    }
 
 fun CloningBotWithSegmentationByChristofidesSwarm(simref: MutableRef<Simulator>, points: Set<Point>,
                                                   botKtor: BotType = ::theMostSmartestPrioritySimulatingAstarBot,
@@ -133,8 +151,8 @@ fun CloningBotWithSegmentationByChristofidesSwarm(simref: MutableRef<Simulator>,
 }
 
 fun CloningBotWithSegmentationSwarm(simref: MutableRef<Simulator>, points: Set<Point>,
-        botKtor: BotType = ::theMostSmartestPrioritySimulatingAstarBot,
-        idx: Int = 0) = sequence {
+                                    botKtor: BotType = ::theMostSmartestPrioritySimulatingAstarBot,
+                                    idx: Int = 0) = sequence {
     val commands = mutableMapOf<Int, Sequence<Pair<Int, Command>>>()
 
     commands[idx] = CloningBot(simref, points, idx)
@@ -165,11 +183,12 @@ fun CloningBotWithSegmentationSwarm(simref: MutableRef<Simulator>, points: Set<P
         for (activeId in activeIdx) {
             val botPos = sim.currentRobots[activeId].pos
 
-            val botSegment = graph.first { botPos in it.getBlob().points }
+//            val botSegment = graph.first { botPos in it.getBlob().points }
+            val botSegment = graph.getCurrentNode(botPos, sim)
 
             val botCommands = commands.getOrPut(activeId) {
                 for ((segment, _) in graphAssignments.toMap()) {
-                    if (segment.getBlob().points.all { sim.gameMap[it].status != Status.EMPTY}) {
+                    if (segment.getBlob().points.all { sim.gameMap[it].status != Status.EMPTY }) {
                         graphAssignments.remove(segment)
                     }
                 }
@@ -207,8 +226,8 @@ fun CloningBotWithSegmentationSwarm(simref: MutableRef<Simulator>, points: Set<P
 }
 
 fun CloningBotSwarm(simref: MutableRef<Simulator>, points: Set<Point>,
-        botKtor: BotType = ::theMostSmartestPrioritySimulatingAstarBot,
-        idx: Int = 0) = sequence {
+                    botKtor: BotType = ::theMostSmartestPrioritySimulatingAstarBot,
+                    idx: Int = 0) = sequence {
     val commands = mutableMapOf<Int, Sequence<Pair<Int, Command>>>()
 
     commands[idx] = CloningBot(simref, points, idx)
