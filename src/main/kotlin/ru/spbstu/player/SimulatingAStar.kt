@@ -109,7 +109,7 @@ fun applySimulatingBoosters(sim: Simulator, idx: Int = 0) = sequence {
                 yield(extensionCommand)
             }
         }
-        BoosterType.FAST_WHEELS in sim.boosters -> {
+        BoosterType.FAST_WHEELS in sim.boosters && BoosterType.FAST_WHEELS !in sim.currentRobots[idx].activeBoosters -> {
             val speedUpCommand = USE_FAST_WHEELS
             yield(speedUpCommand)
         }

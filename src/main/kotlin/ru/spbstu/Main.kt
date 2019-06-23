@@ -18,13 +18,11 @@ import ru.spbstu.sim.Robot
 import ru.spbstu.sim.SimFrame
 import ru.spbstu.sim.Simulator
 import ru.spbstu.util.awaitAll
-import ru.spbstu.wheels.*
 import ru.spbstu.util.log
 import ru.spbstu.util.toSolution
 import ru.spbstu.util.withAutoTick
 import ru.spbstu.wheels.*
 import java.io.File
-import kotlin.reflect.jvm.reflect
 
 object Main : CliktCommand() {
     val useAbsoluteMapPath: Boolean by option().flag(default = false)
@@ -101,11 +99,6 @@ object Main : CliktCommand() {
         val path = bot(mutSim, sim.gameMap.cells.keys, 0).memoize()
 
         if (gui) {
-            val blobs = SuperSmarterAStarBot.findBlobs(sim.gameMap).let {
-                SuperSmarterAStarBot.optimizeBlobs(it)
-            }
-            val segmentFrame = SuperSmarterAStarBot.display(guiCellSize, sim.gameMap, blobs)
-
             val frame = SimFrame(guiCellSize) { mutSim.value }
             for (command in path) {
                 sim = sim.apply(command.first, command.second)

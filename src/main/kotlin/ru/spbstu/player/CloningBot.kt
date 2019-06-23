@@ -14,6 +14,7 @@ import ru.spbstu.util.withIdx
 import ru.spbstu.wheels.MutableRef
 import ru.spbstu.wheels.getValue
 import ru.spbstu.wheels.peekFirstOrNull
+import ru.spbstu.wheels.toMutableMap
 import kotlin.math.ceil
 
 fun Node.getNearest(nodes: Iterable<Node>): Node {
@@ -47,11 +48,13 @@ fun CloningBotWithSegmentationByChristofidesSwarm(simref: MutableRef<Simulator>,
     val optimalPath = Christofides.path(graph).toMutableList()
     val botPathSize = ceil(optimalPath.size.toDouble() / botNumber).toInt()
 
+    val segments = optimalPath.chunked(botPathSize)
+
     val pathAssignments = mutableMapOf<Int, MutableList<Node>>()
-    val graphAssignments = mutableMapOf<Node, MutableList<Int>>()
+    val graphAssignments = optimalPath.map { it to mutableListOf<Int>() }.toMutableMap()
 
     while (true) {
-        if (commands.isEmpty()) break
+        //if (commands.isEmpty()) break
 
         val activeIdx = 0..sim.currentRobots.lastIndex
 
@@ -66,23 +69,23 @@ fun CloningBotWithSegmentationByChristofidesSwarm(simref: MutableRef<Simulator>,
 
                     val nextSegment = botPath.removeAt(0)
 
+                    graphAssignments[nextSegment]?.add(botIdx)
+
                     if (botPath.isEmpty()) pathAssignments.remove(botIdx)
 
                     botKtor(simref, nextSegment.getBlob().points, botIdx)
 
                 } else if (optimalPath.isNotEmpty()) {
-                    val closestPathSegment = botSegment.getNearest(optimalPath)
-                    val closestPathSegmentIdx = optimalPath.indexOf(closestPathSegment)
+                    val candidates = segments.filter { it.first() in optimalPath }
+                            .flatMap { listOf(it.first(), it.last()) }
 
-                    val botPath = (optimalPath.indices + optimalPath.indices)
-                            .drop(closestPathSegmentIdx)
-                            .take(botPathSize)
-                            .map { optimalPath[it] }
-                            .toMutableList()
-
+                    val candidate = botSegment.getNearest(candidates)
+                    val botPath = segments.first { it.contains(candidate) }.toMutableList()
                     optimalPath.removeAll(botPath)
 
                     val nextSegment = botPath.removeAt(0)
+
+                    graphAssignments[nextSegment]?.add(botIdx)
 
                     if (botPath.isNotEmpty()) pathAssignments[botIdx] = botPath
 
@@ -92,7 +95,7 @@ fun CloningBotWithSegmentationByChristofidesSwarm(simref: MutableRef<Simulator>,
 
                     for ((segment, _) in graphAssignments.toMap()) {
                         if (segment.getBlob().points.all { sim.gameMap[it].status != Status.EMPTY }) {
-                            graphAssignments.remove(segment)
+                            graphAssignments -= segment
                         }
                     }
 
@@ -155,7 +158,7 @@ fun CloningBotWithSegmentationSwarm(simref: MutableRef<Simulator>, points: Set<P
     }
 
     while (true) {
-        if (commands.isEmpty()) break
+        //if (commands.isEmpty()) break
 
         val activeIdx = 0..sim.currentRobots.lastIndex
 
@@ -211,7 +214,7 @@ fun CloningBotSwarm(simref: MutableRef<Simulator>, points: Set<Point>,
     commands[idx] = CloningBot(simref, points, idx)
 
     while (true) {
-        if (commands.isEmpty()) break
+        //if (commands.isEmpty()) break
 
         val sim by simref
         val activeIdx = 0..sim.currentRobots.lastIndex
@@ -232,6 +235,8 @@ fun CloningBotSwarm(simref: MutableRef<Simulator>, points: Set<Point>,
             yield(cmd!!)
         }
 
+        if (sim.hasSolved) break
+
         yield(0 to TICK)
     }
 }
@@ -241,7 +246,7 @@ fun CloningBot(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int) =
             while (true) {
                 val sim by simref
 
-                yieldAll(applyBoosters(sim, idx))
+                yieldAll(applySimulatingBoosters(sim, idx))
 
                 val currentRobot = { sim.currentRobots[idx] }
 

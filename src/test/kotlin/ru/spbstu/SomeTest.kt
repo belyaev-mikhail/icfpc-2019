@@ -6,6 +6,6 @@ import kotlin.test.assertTrue
 class SomeTest {
     @Test
     fun runMe() {
-        assertTrue(2 is Int?)
+        (0..0).toList().forEach(::println)
     }
 }

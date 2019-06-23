@@ -56,7 +56,7 @@ object Christofides {
         val chris = ChristofidesThreeHalvesApproxMetricTSP<Node, Edge>()
 
         val tour = chris.getTour(graph.toJGraphT())
-//
+
 //        val newGraph = SingleGraph("chris-display")
 //        for(v in tour.vertexList.toSet()) {
 //            newGraph.addNode<Node>(v.id).addAttributes(v.attributeKeySet.map { it to v.getAttribute<Any?>(it) }.toMap())
@@ -66,7 +66,9 @@ object Christofides {
 //        }
 //        newGraph.display(false)
 
-        return tour.vertexList
+        val res = tour.vertexList
+        if(res.size == 1) return res
+        else return res.dropLast(1)
     }
 
 }
