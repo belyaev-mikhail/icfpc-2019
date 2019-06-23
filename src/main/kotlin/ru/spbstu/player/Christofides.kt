@@ -6,18 +6,23 @@ import org.graphstream.graph.Graph
 import org.graphstream.graph.Node
 import org.graphstream.graph.implementations.SingleGraph
 import org.jgrapht.alg.tour.ChristofidesThreeHalvesApproxMetricTSP
+import org.jgrapht.graph.DefaultUndirectedWeightedGraph
 import org.jgrapht.graph.SimpleGraph
 import ru.spbstu.map.sqr
 import kotlin.math.sqrt
 
 fun Node.distance(that: Node): Double {
-    val (x, y) = getVector("xy")
-    val (tx, ty) = that.getVector("xy")
+    val (x, y) = getArray("xy")
+    x as Number
+    y as Number
+    val (tx, ty) = that.getArray("xy")
+    tx as Number
+    ty as Number
     return sqrt(sqr(tx.toDouble() - x.toDouble()) + sqr(ty.toDouble() - y.toDouble()))
 }
 
 fun Graph.toJGraphT(): org.jgrapht.Graph<Node, Edge> {
-    val res = SimpleGraph<Node, Edge>(Edge::class.java)
+    val res = DefaultUndirectedWeightedGraph<Node, Edge>(Edge::class.java)
     getNodeIterator<Node>().forEach {
         res.addVertex(it)
     }
