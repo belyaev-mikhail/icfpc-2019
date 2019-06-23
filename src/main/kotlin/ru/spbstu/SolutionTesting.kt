@@ -29,7 +29,6 @@ object Tester {
         boostSubmissionField.clear()
         if (booster != null) boostSubmissionField.sendKeys(booster)
         val submitButton = browser.findElementById("execute_solution")
-        Thread.sleep(1000)
         submitButton.click()
         val result = browser.findElementById("output")
         while (true) {
