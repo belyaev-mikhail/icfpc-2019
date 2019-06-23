@@ -114,6 +114,10 @@ fun applySimulatingBoosters(sim: Simulator, idx: Int = 0) = sequence {
             val speedUpCommand = USE_FAST_WHEELS
             yield(speedUpCommand)
         }
+        BoosterType.DRILL in sim.boosters && BoosterType.DRILL !in sim.currentRobots[idx].activeBoosters -> {
+            val useDrillCommand = USE_DRILL
+            yield(useDrillCommand)
+        }
     }
 }
 
@@ -167,12 +171,14 @@ fun evenSmarterPrioritySimulatingAstarBot(simref: MutableRef<Simulator>, points:
 
                 yieldAll(applySimulatingBoosters(sim, idx))
 
-                val closestBooster = checkNearestBooster(sim, currentRobot()) {
-                    it.booster == BoosterType.MANIPULATOR_EXTENSION || it.booster == BoosterType.FAST_WHEELS
+                val booster = checkNearestBooster(sim, currentRobot()) {
+                    it.booster == BoosterType.MANIPULATOR_EXTENSION
+                            || it.booster == BoosterType.FAST_WHEELS
+                            || it.booster == BoosterType.DRILL
                 }
 
-                if (closestBooster != null) {
-                    val local = simulatingAStarForWalking(sim, closestBooster, idx)
+                if (booster != null) {
+                    val local = simulatingAStarForWalking(sim, booster, idx)
                     yieldAll(local)
                 }
 
@@ -210,7 +216,9 @@ fun theMostSmartestPrioritySimulatingAstarBot(simref: MutableRef<Simulator>, poi
                 val local = simulatingAStar(sim, target.first, idx)
                 for (command in local) {
                     val booster = checkNearestBooster(sim, currentRobot()) {
-                        it.booster == BoosterType.MANIPULATOR_EXTENSION || it.booster == BoosterType.FAST_WHEELS
+                        it.booster == BoosterType.MANIPULATOR_EXTENSION
+                                || it.booster == BoosterType.FAST_WHEELS
+                                || it.booster == BoosterType.DRILL
                     }
                     if (booster != null) {
                         val pathToBooster = simulatingAStarForWalking(sim, booster, idx)

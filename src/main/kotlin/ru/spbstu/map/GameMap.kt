@@ -88,9 +88,17 @@ fun GameMap(corners: List<Point>, obstacles: List<Obstacle>, boosters: List<Boos
             if (mapPath.contains(p)) {
                 cells[p] = Cell.Empty
             } else {
-                cells[p] = Cell.Superwall
+                cells[p] = Cell.Wall
             }
         }
+    }
+    for (x in -1..maxX) {
+        cells[Point(x, -1)] = Cell.Superwall
+        cells[Point(x, maxY)] = Cell.Superwall
+    }
+    for (y in -1..maxY) {
+        cells[Point(-1, y)] = Cell.Superwall
+        cells[Point(maxX, y)] = Cell.Superwall
     }
 
     for (obstacle in obstacles) {

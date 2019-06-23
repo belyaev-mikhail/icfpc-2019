@@ -8,6 +8,7 @@ import com.github.ajalt.clikt.parameters.types.int
 import kotlinx.coroutines.*
 import ru.spbstu.ktuples.placeholders._2
 import ru.spbstu.ktuples.placeholders.bind
+import ru.spbstu.map.BoosterType
 import ru.spbstu.map.GameMap
 import ru.spbstu.map.Point
 import ru.spbstu.parse.parseAnswer
@@ -35,9 +36,29 @@ object Main : CliktCommand() {
     val mergeSolutions: Boolean by option().flag(default = false)
     val candidatesFolder by option().default("candidates")
     val keepExisting by option().flag(default = false)
+    val buy: Boolean by option().flag(default = false)
+    val money: Int by option().int().default(200000)
 
 //    val count: Int by option(help = "Number of greetings").int().default(1)
 //    val name: String? by option(help = "The person to greet")
+
+    fun GameMap.hasInitialBoosters(): Boolean {
+        if (!buy) return false
+        val boosters = boosterCells.map { it.value.booster }.toSet()
+        if (boosters.contains(BoosterType.CLONING)) return false
+        if (!boosters.contains(BoosterType.MYSTERY)) return false
+        return true
+    }
+
+    fun Simulator.withInitialBoostersIfNeeded(resFile: File): Simulator {
+        if (!gameMap.hasInitialBoosters()) return this
+        resFile.parentFile.mkdirs()
+        val boostersFile = File(resFile.parentFile, resFile.nameWithoutExtension + ".buy")
+        boostersFile.writeText("C")
+        return copy(
+                boosters = mapOf(BoosterType.CLONING to 1)
+        )
+    }
 
     suspend fun CoroutineScope.handleMap(file: String) {
         val data = File(file).let { parseFile(it.name, it.readText()) }
@@ -45,41 +66,48 @@ object Main : CliktCommand() {
 
         val best = run {
             val paths = listOf(
-                    "astarBot" to ::astarBot.withAutoTick(),
-                    "smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
-                    "evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
-                    "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
-                    "smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
-                    "evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
-                    "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
-                    "prioritySimulatingAstarBot" to ::prioritySimulatingAstarBot.withAutoTick(),
-                    "smarterPrioritySimulatingAstarBot" to :: smarterPrioritySimulatingAstarBot.withAutoTick(),
-                    "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
-                    "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
-                    "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick(),
-                    "SmartAsFuckBot" to SmartAsFuckBot.withAutoTick(),
-                    "CloningBotSwarm" to ::CloningBotSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
-                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
+//                    "astarBot" to ::astarBot.withAutoTick(),
+//                    "smarterAstarBot" to ::smarterAstarBot.withAutoTick(),
+//                    "evenSmarterAstarBot" to ::evenSmarterAstarBot.withAutoTick(),
+//                    "priorityAstarBot" to ::priorityAstarBot.withAutoTick(),
+//                    "smarterPriorityAstarBot" to ::smarterPriorityAstarBot.withAutoTick(),
+//                    "evenSmarterPriorityAstarBot" to ::evenSmarterPriorityAstarBot.withAutoTick(),
+//                    "theMostSmartestPriorityAstarBot" to ::theMostSmartestPriorityAstarBot.withAutoTick(),
+//                    "prioritySimulatingAstarBot" to ::prioritySimulatingAstarBot.withAutoTick(),
+//                    "smarterPrioritySimulatingAstarBot" to ::smarterPrioritySimulatingAstarBot.withAutoTick(),
+//                    "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
+//                    "theMostSmartestPrioritySimulatingAstarBot" to ::theMostSmartestPrioritySimulatingAstarBot.withAutoTick(),
+//                    "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick(),
+//                    "SmartAsFuckBot" to SmartAsFuckBot.withAutoTick(),
+//                    "CloningBotSwarm" to ::CloningBotSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
+//                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot),
                     "CloningBotWithSegmentationByChristofidesSwarm" to ::CloningBotWithSegmentationByChristofidesSwarm.bind(_2, ::theMostSmartestPrioritySimulatingAstarBot)
-                ).map {
+            ).map {
 
-                        val map = GameMap(data)
-                        val sim = Simulator(Robot(data.initial), map)
+                val map = GameMap(data)
+                if (buy && !map.hasInitialBoosters()) {
+                    log.warn("Handling of file $file is skipped")
+                    return
+                }
 
-                        val name = it.first
-                        val bot = it.second
+                val name = if (map.hasInitialBoosters()) it.first + "-buy" else it.first
+                val bot = it.second
+                val resFile = File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name)
 
-                        val resFile = File(File(File("candidates"), name), File(file.replace(".desc", ".sol")).name)
-                        async {
-                            if(keepExisting && resFile.exists())
-                                return@async name to Pair(sequenceOf<Pair<Int, Command>>(), Int.MAX_VALUE)
-                            val res = handleMapSingle("$name started ${file}", sim, bot)
-                            resFile.apply { parentFile.mkdirs() }.bufferedWriter().use {
-                                it.write(res.first.toSolution())
-                            }
-                            name to res
-                        }
-                    }.awaitAll()
+                val sim = Simulator(Robot(data.initial), map)
+                        .withInitialBoostersIfNeeded(resFile)
+
+
+                async {
+                    if (keepExisting && resFile.exists())
+                        return@async name to Pair(sequenceOf<Pair<Int, Command>>(), Int.MAX_VALUE)
+                    val res = handleMapSingle("$name started ${file}", sim, bot)
+                    resFile.apply { parentFile.mkdirs() }.bufferedWriter().use {
+                        it.write(res.first.toSolution())
+                    }
+                    name to res
+                }
+            }.awaitAll()
 
             paths.minBy { it.second.second }
         }
