@@ -19,8 +19,9 @@ data class SimulatorAndCommand(val sim: Simulator, val command: Command, val idx
 
     override fun equals(other: Any?): Boolean = other is SimulatorAndCommand
             && robot.pos == other.robot.pos && robot.orientation == other.robot.orientation && idx == other.idx
+            && robot.activeBoosters == other.robot.activeBoosters
 
-    override fun hashCode(): Int = Objects.hash(robot.pos, robot.orientation, idx)
+    override fun hashCode(): Int = Objects.hash(robot.pos, robot.orientation, robot.activeBoosters, idx)
 }
 
 fun simulatingAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
