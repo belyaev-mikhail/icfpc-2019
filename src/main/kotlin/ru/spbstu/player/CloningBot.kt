@@ -79,7 +79,7 @@ fun CloningBotWithSegmentationByChristofidesSwarm(simref: MutableRef<Simulator>,
         for (botIdx in activeIdx) {
             val botPos = sim.currentRobots[botIdx].pos
 
-            val botSegment = graph.first { botPos in it.getBlob().points }
+            val botSegment = graph.getCurrentNode(botPos, sim)
 
             val botCommands = commands.getOrPut(botIdx) {
                 if (botIdx in pathAssignments) {
