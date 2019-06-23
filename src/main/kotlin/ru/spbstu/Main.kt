@@ -6,6 +6,8 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import kotlinx.coroutines.*
+import ru.spbstu.ktuples.placeholders._2
+import ru.spbstu.ktuples.placeholders.bind
 import ru.spbstu.map.GameMap
 import ru.spbstu.map.Point
 import ru.spbstu.parse.parseAnswer
@@ -55,8 +57,8 @@ object Main : CliktCommand() {
                     "evenSmarterPrioritySimulatingAstarBot" to ::evenSmarterPrioritySimulatingAstarBot.withAutoTick(),
                     "SuperSmarterAStarBot" to SuperSmarterAStarBot.withAutoTick(),
                     "SmartAsFuckBot" to SmartAsFuckBot.withAutoTick(),
-                    "CloningBotSwarm" to ::CloningBotSwarm,
-                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm)
+                    "CloningBotSwarm" to ::CloningBotSwarm.bind(_2, SuperSmarterAStarBot),
+                    "CloningBotWithSegmentationSwarm" to ::CloningBotWithSegmentationSwarm.bind(_2, SuperSmarterAStarBot))
                     .map {
                         val map = GameMap(data)
                         val sim = Simulator(Robot(data.initial), map)

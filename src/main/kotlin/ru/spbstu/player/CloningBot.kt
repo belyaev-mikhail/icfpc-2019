@@ -20,7 +20,9 @@ fun Node.getNearest(nodes: Iterable<Node>): Node {
 
 fun Node.getBlob() = getAttribute<SuperSmarterAStarBot.Blob>("blob")!!
 
-fun CloningBotWithSegmentationSwarm(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) = sequence {
+fun CloningBotWithSegmentationSwarm(simref: MutableRef<Simulator>, points: Set<Point>,
+        botKtor: BotType = SuperSmarterAStarBot,
+        idx: Int = 0) = sequence {
     val commands = mutableMapOf<Int, Sequence<Pair<Int, Command>>>()
 
     commands[idx] = CloningBot(simref, points, idx)
@@ -70,7 +72,7 @@ fun CloningBotWithSegmentationSwarm(simref: MutableRef<Simulator>, points: Set<P
 
                 graphAssignments[candidate]?.add(activeId)
 
-                theMostSmartestPriorityAstarBot(simref, candidateBlob.points, activeId)
+                botKtor(simref, candidateBlob.points, activeId)
             }
 
             val (cmd, rest) = botCommands.peekFirstOrNull()
@@ -91,7 +93,9 @@ fun CloningBotWithSegmentationSwarm(simref: MutableRef<Simulator>, points: Set<P
     }
 }
 
-fun CloningBotSwarm(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int = 0) = sequence {
+fun CloningBotSwarm(simref: MutableRef<Simulator>, points: Set<Point>,
+        botKtor: BotType = SuperSmarterAStarBot,
+        idx: Int = 0) = sequence {
     val commands = mutableMapOf<Int, Sequence<Pair<Int, Command>>>()
 
     commands[idx] = CloningBot(simref, points, idx)
@@ -103,7 +107,7 @@ fun CloningBotSwarm(simref: MutableRef<Simulator>, points: Set<Point>, idx: Int 
         val activeIdx = 0..sim.currentRobots.lastIndex
 
         for (activeId in activeIdx) {
-            val botCommands = commands.getOrPut(activeId) { theMostSmartestPriorityAstarBot(simref, points, activeId) }
+            val botCommands = commands.getOrPut(activeId) { botKtor(simref, points, activeId) }
 
             val (cmd, rest) = botCommands.peekFirstOrNull()
 
