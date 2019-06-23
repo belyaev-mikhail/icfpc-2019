@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from werkzeug.wrappers import Request, Response
 from werkzeug.serving import run_simple
+from multiprocessing import Process
 from jsonrpc import JSONRPCResponseManager, dispatcher
 from cachetools import cached, TTLCache
 import urllib, urllib.parse
@@ -14,7 +15,7 @@ from datetime import datetime
 
 import sched, time
 s = sched.scheduler(time.time, time.sleep)
-def do_something(sc):
+def do_something():
     try:
         print('update')
         block_info = getblockinfo()
@@ -32,7 +33,11 @@ def do_something(sc):
         print("[{}] Update exception: {}".format(now, e))
 
 
-    s.enter(15, 1, do_something, (sc,))
+
+def update_forever():
+    while True:
+        do_something()
+        time.sleep(15)
 
 
 # https://stackoverflow.com/questions/12435211/python-threading-timer-repeat-function-every-n-seconds
@@ -209,6 +214,8 @@ if __name__ == '__main__':
 
     updater = update()
 
-    s.enter(15, 1, do_something, (s,))
-    s.run()
+    t = Process(target=update_forever)
+    t.start()
+
+    print('started')
     run_simple(args.bind, args.port, application)
