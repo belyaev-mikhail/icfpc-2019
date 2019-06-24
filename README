@@ -1,0 +1,43 @@
+# icfpc-2019
+Team 301 entry for ICFPC 2019
+
+# The idea
+
+We have a ton of different bots doing different things, but the birdeye view of our solution is as follows.
+
+- Divide the whole map into fixed-size blobs, turn them into a reachability graph
+- Build a suboptimal loop path through the graph (using Christofides algorithm)
+- Clone as much as we can
+- Divide the loop into segments for the number of bots and cover them in order
+- In each segment, each bot tries to cover the area using simple (and stupid) A-star-based approach, variations may apply
+
+For the money-spending, we are not very careful money-wise, 'cause the only thing we do is buying a friend for our lonely worker if we can.
+We only do this for maps where he cannot make friends by himself.
+Basically, we spend all our money for our guy not feeling lonely.
+
+The map generator works as all other map generators do, a-staring the obstacle points to the outer area and then adding corners until we fit into the task restrictions.
+
+# Building the solution
+
+`mvn package`
+
+# Running the solution
+
+```
+Usage: java -jar target/icfpc-2019-0.0.0.1-SNAPSHOT-jar-with-dependencies.jar [OPTIONS]
+
+Options:
+  --use-absolute-map-path   Dealing with --map argument as a file, not a number
+  --map TEXT                Map to run on (number of file)
+  --gui                     Run our awesome GUI
+  --gui-cell-size INT       Control the size of our awesome gui through the size of a single cell (in pixels)
+  --speed INT               Control the speed of our awesome gui
+  --sol-folder TEXT         The folder to put solutions into
+  --threads INT             The number of threads to run the solutions on
+  --merge-solutions         The merge-mode (not solving anything, just merging the results from candidates folder)
+  --candidates-folder TEXT  The candidates folder for the merge mode
+  --keep-existing           Do not re-run any bots if the candidates folder contains solutions for them
+  --buy                     Using the buy mechanism when running bots
+  --money INT               The total amount of money we have (used in merge mode)
+  -h, --help                Show this message and exit
+```
