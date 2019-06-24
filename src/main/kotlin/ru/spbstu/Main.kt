@@ -6,6 +6,8 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import kotlinx.coroutines.*
+import ru.spbstu.ktuples.Tuple
+import ru.spbstu.ktuples.Tuple3
 import ru.spbstu.map.GameMap
 import ru.spbstu.map.Point
 import ru.spbstu.parse.parseAnswer
@@ -122,21 +124,22 @@ object Main : CliktCommand() {
             val dirs = folder.listFiles().filter { it.isDirectory }.sortedBy { it.name }
             val allNames = dirs.flatMapTo(mutableSetOf()) { it.list().filter { it.endsWith(".sol") }.asIterable() }
             for (name in allNames) {
-                val scoring = mutableMapOf<File, Pair<Int, String>>()
+                val scoring = mutableMapOf<File, Tuple3<Int, String, Boolean>>()
                 for (dir in dirs) {
                     val file = dir.listFiles { _, nm -> nm == name }.firstOrNull()
                             ?: continue
                     val text = file.readText()
                     val ans = parseAnswer(text)
                     val score = ans.maxBy { it.size }?.size!!
-                    scoring[dir] = score to text
+                    scoring[dir] = Tuple(score, text, File(file.absolutePath.replace(".sol", ".buy")).exists())
                 }
                 File(sols, name).printWriter().use {
-                    val top = scoring.minBy { it.value.first }
+                    val top = scoring.minBy { it.value.v0 }
                     log.debug("File: $name")
                     check(top != null)
-                    log.debug("Top score: ${top.value.first}; folder: ${top.key}")
-                    it.print(top.value.second)
+                    log.debug("Top score: ${top.value.v0}; folder: ${top.key}")
+                    it.print(top.value.v1)
+                    if(top.value.v2) File(sols, name.replace(".sol", ".buy")).writeText("C")
                 }
             }
             return
