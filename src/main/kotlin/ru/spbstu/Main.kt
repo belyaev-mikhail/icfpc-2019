@@ -196,9 +196,8 @@ object Main : CliktCommand() {
                 File(sols, name).printWriter().use {
                     val topFree = scoring.minBy { it.value.v0 }
                     val topPaid = scoringWithDonat.minBy { it.value.v0 }
-                    if(buyings > 0) {
+                    if(buyings > 0 && topPaid != null) {
                         log.debug("File: $name")
-                        check(topPaid != null)
                         log.debug("Top score: ${topPaid.value.v0}; folder: ${topPaid.key}")
                         it.print(topPaid.value.v1)
                         File(sols, name.replace(".sol", ".buy")).writeText("C")
