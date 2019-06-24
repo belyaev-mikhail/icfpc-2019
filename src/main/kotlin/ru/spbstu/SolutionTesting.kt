@@ -14,16 +14,18 @@ object Tester {
     lateinit var browser: ChromeDriver
     fun prepare() {
         val chromeOptions = ChromeOptions()
-        chromeOptions.setBinary("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe")
-        System.setProperty("webdriver.chrome.driver", "D:\\!9Semester\\icfpc-2019\\chromedriver.exe");
+        chromeOptions.setBinary("/usr/bin/chromium")
+        System.setProperty("webdriver.chrome.driver", "/home/sobol/IdeaProjects/icfpc-2019/chromedriver");
         browser = ChromeDriver(chromeOptions)
         browser.get("https://icfpcontest2019.github.io/solution_checker/")
     }
 
     fun run(solution: String, description: String, booster: String?): ValidationResult {
         val taskSubmissionField = browser.findElementById("submit_task")
+        taskSubmissionField.clear()
         taskSubmissionField.sendKeys(description)
         val solSubmissionField = browser.findElementById("submit_solution")
+        solSubmissionField.clear()
         solSubmissionField.sendKeys(solution)
         val boostSubmissionField = browser.findElementById("submit_boosters")
         boostSubmissionField.clear()
@@ -86,6 +88,6 @@ object Tester {
 
 fun main(args: Array<String>) {
     Tester.prepare()
-    Tester.validate("D:\\!9Semester\\icfpc-2019\\docs\\tasks", "D:\\!9Semester\\icfpc-2019\\test")
+    Tester.validate("/home/sobol/IdeaProjects/icfpc-2019/docs/tasks", "/home/sobol/results")
     Tester.close()
 }
