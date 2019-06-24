@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import kotlinx.coroutines.*
 import ru.spbstu.ktuples.Tuple
+import ru.spbstu.ktuples.Tuple2
 import ru.spbstu.ktuples.Tuple3
 import ru.spbstu.ktuples.placeholders._2
 import ru.spbstu.ktuples.placeholders.bind
@@ -162,31 +163,52 @@ object Main : CliktCommand() {
 
     override fun run() {
         if (mergeSolutions) { /* merge solution mode */
+            var buyings = money / 2000
             val folder = File(candidatesFolder)
             val sols = File(solFolder)
             sols.mkdirs()
             check(folder.exists())
             check(folder.isDirectory)
 
-            val dirs = folder.listFiles().filter { it.isDirectory }.sortedBy { it.name }
+            val dirs = folder.listFiles().filter { it.isDirectory }.sortedBy { it.name }.filter { !it.name.endsWith("-buy") }
+            val donatDirs = folder.listFiles().filter { it.isDirectory }.sortedBy { it.name }.filter { it.name.endsWith("-buy") }
+
             val allNames = dirs.flatMapTo(mutableSetOf()) { it.list().filter { it.endsWith(".sol") }.asIterable() }
             for (name in allNames) {
-                val scoring = mutableMapOf<File, Tuple3<Int, String, Boolean>>()
+                val scoring = mutableMapOf<File, Tuple2<Int, String>>()
+                val scoringWithDonat = mutableMapOf<File, Tuple2<Int, String>>()
                 for (dir in dirs) {
                     val file = dir.listFiles { _, nm -> nm == name }.firstOrNull()
                             ?: continue
                     val text = file.readText()
                     val ans = parseAnswer(text)
                     val score = ans.maxBy { it.size }?.size!!
-                    scoring[dir] = Tuple(score, text, File(file.absolutePath.replace(".sol", ".buy")).exists())
+                    scoring[dir] = Tuple(score, text)
+                }
+                for (dir in donatDirs) {
+                    val file = dir.listFiles { _, nm -> nm == name }.firstOrNull()
+                            ?: continue
+                    val text = file.readText()
+                    val ans = parseAnswer(text)
+                    val score = ans.maxBy { it.size }?.size!!
+                    scoringWithDonat[dir] = Tuple(score, text)
                 }
                 File(sols, name).printWriter().use {
-                    val top = scoring.minBy { it.value.v0 }
-                    log.debug("File: $name")
-                    check(top != null)
-                    log.debug("Top score: ${top.value.v0}; folder: ${top.key}")
-                    it.print(top.value.v1)
-                    if(top.value.v2) File(sols, name.replace(".sol", ".buy")).writeText("C")
+                    val topFree = scoring.minBy { it.value.v0 }
+                    val topPaid = scoringWithDonat.minBy { it.value.v0 }
+                    if(buyings > 0) {
+                        log.debug("File: $name")
+                        check(topPaid != null)
+                        log.debug("Top score: ${topPaid.value.v0}; folder: ${topPaid.key}")
+                        it.print(topPaid.value.v1)
+                        File(sols, name.replace(".sol", ".buy")).writeText("C")
+                        --buyings
+                    } else {
+                        log.debug("File: $name")
+                        check(topFree != null)
+                        log.debug("Top score: ${topFree.value.v0}; folder: ${topFree.key}")
+                        it.print(topFree.value.v1)
+                    }
                 }
             }
             return
