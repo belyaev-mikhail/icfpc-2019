@@ -34,7 +34,8 @@ fun simulatingAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
         },
         goal = { it.sim.gameMap[target].status == Status.WRAP },
         neighbours = { it.neighbors.asSequence() }
-)?.dropLast(1)?.map { it.command }?.reversed() ?: listOf(NOOP)
+)?.dropLast(1)?.map { it.command }?.reversed()
+        ?: Array<Command>(sim.currentRobots[idx].activeBoosters[BoosterType.FAST_WHEELS] ?: 1){ NOOP }.asList()
 
 fun simulatingEnclosedAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
         SimulatorAndCommand(sim, NOOP, idx),
@@ -62,7 +63,8 @@ fun simulatingAStarForWalking(sim: Simulator, target: Point, idx: Int) = aStarSe
         },
         goal = { target == it.sim.currentRobots[it.idx].pos },
         neighbours = { it.neighbors.asSequence() }
-)?.dropLast(1)?.map { it.command }?.reversed() ?: listOf(NOOP)
+)?.dropLast(1)?.map { it.command }?.reversed()
+        ?: Array<Command>(sim.currentRobots[idx].activeBoosters[BoosterType.FAST_WHEELS] ?: 1){ NOOP }.asList()
 
 fun applySimulatingBoosters(sim: Simulator, idx: Int = 0) = sequence {
     when {
