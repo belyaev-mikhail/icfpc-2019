@@ -48,7 +48,7 @@ data class SimAndCommand(val sim: Simulator, val command: Command, val points: S
 
 fun wholeMapAStar(sim: Simulator, points: Set<Point>) = run {
     val msim = ref(sim)
-    val vis = SimFrame(10) { msim.value }
+    val vis = SimFrame("", 10) { msim.value }
     aStarSearch(
             SimAndCommand(sim, NOOP, points),
             heur = { it.empties },

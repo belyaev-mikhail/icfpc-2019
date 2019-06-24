@@ -7,6 +7,7 @@ import ru.spbstu.map.BoosterType.*
 import ru.spbstu.map.Status.*
 import ru.spbstu.util.dec
 import ru.spbstu.util.inc
+import ru.spbstu.util.log
 import java.awt.Color
 import java.awt.Color.*
 import java.awt.Dimension
@@ -115,8 +116,6 @@ enum class Orientation(val dx: Int, val dy: Int) {
     }
 }
 
-operator fun Point.plus(orientation: Point) = copy(v0 = v0 + orientation.v0, v1 = v1 + orientation.v1)
-
 data class Robot(val pos: Point,
                  val orientation: Orientation = Orientation.RIGHT,
                  val manipulators: List<Point> = listOf(
@@ -187,6 +186,7 @@ internal constructor(val ignore: Any?,
                      val currentRobots: ImList<Robot>,
                      val gameMap: GameMap,
                      val time: Int = 0,
+                     val seenRobots: ImList<Int> = PersistentVector.empty(),
                      val boosters: Map<BoosterType, Int> = mapOf(),
                      val freshBoosters: Map<BoosterType, Int> = mapOf(),
                      val teleports: Set<Point> = setOf()) {
@@ -227,6 +227,10 @@ internal constructor(val ignore: Any?,
     fun apply(idx: Int, cmd: Command, nested: Boolean = false): Simulator {
 
         // nested == true means we're processing second part of fast wheels
+
+        var newSeenRobots = seenRobots
+
+        if (!nested) newSeenRobots = newSeenRobots.append(idx)
 
         var newGameMap = gameMap
         var newCurrentRobot = currentRobots[idx]
@@ -299,7 +303,7 @@ internal constructor(val ignore: Any?,
 
             is USE_DRILL -> {
                 if (DRILL !in newBoosters) die(idx, "Cannot use drill")
-                newBoosters = newBoosters.dec(FAST_WHEELS)
+                newBoosters = newBoosters.dec(DRILL)
 
                 val activeBoosters = newCurrentRobot.activeBoosters.toMutableMap()
                 activeBoosters[DRILL] = DRILL.timer + 1 // will tick down immediately
@@ -358,6 +362,15 @@ internal constructor(val ignore: Any?,
                 }
 
                 newFreshBoosters = emptyMap()
+
+                val diff = currentRobots.indices - newSeenRobots
+                if (diff.isEmpty() || diff.size == 1 && diff[0] == currentRobots.lastIndex) {
+                    // OK
+                } else {
+                    println("FUCK ME SIDEWAYS")
+                }
+
+                newSeenRobots = PersistentVector.empty()
             }
         }
 
@@ -367,6 +380,7 @@ internal constructor(val ignore: Any?,
         var newSim = this.copy(
                 gameMap = newGameMap,
                 currentRobots = newCurrentRobots,
+                seenRobots = newSeenRobots,
                 boosters = newBoosters,
                 freshBoosters = newFreshBoosters,
                 teleports = newTeleports,
@@ -377,7 +391,8 @@ internal constructor(val ignore: Any?,
             newSim = newSim.apply(idx, cmd, true)
         }
 
-        return if (!nested) newSim.tick(idx) else newSim
+        // fucked up
+        return if (!nested && cmd != TICK) newSim.tick(idx) else newSim
     }
 
     fun tick(idx: Int): Simulator {
@@ -391,8 +406,9 @@ internal constructor(val ignore: Any?,
 
 }
 
-class SimFrame(val cellSize: Int, val mutSim: () -> Simulator) : JFrame() {
+class SimFrame(val iname: String, val cellSize: Int, val mutSim: () -> Simulator) : JFrame() {
     init {
+        title = iname
         add(panel())
         pack()
         isVisible = true

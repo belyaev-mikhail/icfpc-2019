@@ -5,10 +5,7 @@ import ru.spbstu.map.Cell
 import ru.spbstu.map.Point
 import ru.spbstu.map.Status
 import ru.spbstu.map.euclidDistance
-import ru.spbstu.sim.ATTACH_MANUPULATOR
-import ru.spbstu.sim.CLONE
-import ru.spbstu.sim.Robot
-import ru.spbstu.sim.Simulator
+import ru.spbstu.sim.*
 import ru.spbstu.util.withIdx
 import ru.spbstu.wheels.MutableRef
 import ru.spbstu.wheels.getValue
@@ -30,9 +27,9 @@ fun checkNearestBooster(sim: Simulator, bot: Robot, maxDist: Double = 5.0, predi
 
 fun applyBoosters(sim: Simulator, idx: Int = 0) = sequence {
     when {
-        CLONING in sim.boosters && sim.gameMap[sim.currentRobots[idx].pos].booster == MYSTERY -> {
-            yield(CLONE)
-        }
+//        CLONING in sim.boosters && sim.gameMap[sim.currentRobots[idx].pos].booster == MYSTERY -> {
+//            yield(CLONE)
+//        }
         MANIPULATOR_EXTENSION in sim.boosters -> {
             val manipulatorXRange = sim.currentRobots[idx].manipulators.map { it.v0 }.sorted()
             val manipulatorYRange = sim.currentRobots[idx].manipulators.map { it.v1 }.sorted()

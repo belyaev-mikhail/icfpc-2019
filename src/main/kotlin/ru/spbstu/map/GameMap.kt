@@ -88,9 +88,17 @@ fun GameMap(corners: List<Point>, obstacles: List<Obstacle>, boosters: List<Boos
             if (mapPath.contains(p)) {
                 cells[p] = Cell.Empty
             } else {
-                cells[p] = Cell.Superwall
+                cells[p] = Cell.Wall
             }
         }
+    }
+    for (x in -1..maxX) {
+        cells[Point(x, -1)] = Cell.Superwall
+        cells[Point(x, maxY)] = Cell.Superwall
+    }
+    for (y in -1..maxY) {
+        cells[Point(-1, y)] = Cell.Superwall
+        cells[Point(maxX, y)] = Cell.Superwall
     }
 
     for (obstacle in obstacles) {
@@ -221,11 +229,17 @@ data class GameMap(
             visited += n
 
             // TODO: DO WE NEED THIS?
-            if (get(n).status.isWall) continue
+            if (get(n).status == Status.SUPERWALL) continue
 
             n.neighbours().forEach { next.put(it) }
         }
     }.filter { pred(it.first, it.second) }
+
+    fun enclosedArea(point: Point, area: Int) = closestFrom(point) { _, cell ->
+        cell.status == Status.EMPTY
+    }.take(area).count()
+
+    fun inEnclosedArea(point: Point, threshold: Int = 5): Boolean = enclosedArea(point, threshold) < threshold
 
     fun toASCII(): String {
         val res = StringBuilder()

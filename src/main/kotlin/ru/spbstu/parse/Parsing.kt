@@ -39,16 +39,18 @@ fun parseAnswer(data: String): List<List<Command>> {
     val newData = data.split("#").map { it.trim() }
     val newRes = mutableListOf<StringBuilder>()
     val botNum = data.split("#").size
+    var curBotNum = 1
     repeat(botNum) { newRes.add(StringBuilder()) }
     var offsets = mutableListOf(0)
     while (!offsets.mapIndexed { index, i -> index to i }.all { newData[it.first].length <= it.second }) {
-        for (j in offsets.size until botNum) {
-            newRes[j].append('N')
+        for (i in offsets.size until botNum) {
+            newRes[i].append('N')
         }
         for (i in 0 until offsets.size) {
             if (offsets[i] >= newData[i].length) continue
-            if (newData[i][offsets[i]] == 'C') {
+            if (newData[i][offsets[i]] == 'C' && curBotNum < botNum) {
                 offsets.add(-1)
+                curBotNum++
             }
         }
         offsets = offsets.map { it + 1 }.toMutableList()

@@ -6,6 +6,7 @@ import org.graphstream.graph.Edge
 import org.graphstream.graph.Graph
 import org.graphstream.graph.Node
 import org.graphstream.graph.implementations.SingleGraph
+import org.jgrapht.alg.tour.ChristofidesThreeHalvesApproxMetricTSP
 import ru.spbstu.map.*
 import ru.spbstu.sim.Command
 import ru.spbstu.sim.Simulator
@@ -198,17 +199,20 @@ object SuperSmarterAStarBot: BotType {
             val initialBlobs = findBlobs(sim.gameMap)
             val blobs = optimizeBlobs(initialBlobs)
             val graph = findGraph(blobs)
-            val kruskal = Kruskal()
-            kruskal.init(graph)
-            kruskal.compute()
+
+            var chris = Christofides.path(graph)
 
             val initialBlobIdx = blobs.indexOfFirst { currentRobot().pos in it }
             val rootNode = graph.getNode<Node>("$initialBlobIdx")
 
-            val orderedBlobs = getBlobsOrdered(rootNode, graph.getNodeSet<Node>().toList(), kruskal.getTreeEdges<Edge>().toList())
+            val rootIndex = chris.indexOf(rootNode)
+            val orderedBlobs = (chris.subList(rootIndex, chris.size) + chris.subList(0, rootIndex)).map {
+                it.getAttribute<Blob>("blob")
+            }
+            println(orderedBlobs)
 
             for (blob in orderedBlobs) {
-                yieldAll(evenSmarterPriorityAstarBot(simref, blob.points, idx))
+                yieldAll(theMostSmartestPrioritySimulatingAstarBot(simref, blob.points, idx))
             }
         }
     }
