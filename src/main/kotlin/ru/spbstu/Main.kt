@@ -40,7 +40,7 @@ object Main : CliktCommand() {
     val candidatesFolder by option().default("candidates")
     val keepExisting by option().flag(default = false)
     val buy: Boolean by option().flag(default = false)
-    val money: Int by option().int().default(200000)
+    val money: Int by option().int().default(295000)
 
 //    val count: Int by option(help = "Number of greetings").int().default(1)
 //    val name: String? by option(help = "The person to greet")
