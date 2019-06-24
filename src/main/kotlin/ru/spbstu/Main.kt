@@ -174,7 +174,9 @@ object Main : CliktCommand() {
             val donatDirs = folder.listFiles().filter { it.isDirectory }.sortedBy { it.name }.filter { it.name.endsWith("-buy") }
 
             val allNames = dirs.flatMapTo(mutableSetOf()) { it.list().filter { it.endsWith(".sol") }.asIterable() }
-            for (name in allNames) {
+            for (name in allNames
+                    .sortedByDescending { File(File("docs/tasks"), it.replace(".sol", ".desc") ).length() }
+            ) {
                 val scoring = mutableMapOf<File, Tuple2<Int, String>>()
                 val scoringWithDonat = mutableMapOf<File, Tuple2<Int, String>>()
                 for (dir in dirs) {
