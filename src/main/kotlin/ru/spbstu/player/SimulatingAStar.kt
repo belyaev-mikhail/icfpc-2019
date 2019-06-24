@@ -19,8 +19,9 @@ data class SimulatorAndCommand(val sim: Simulator, val command: Command, val idx
 
     override fun equals(other: Any?): Boolean = other is SimulatorAndCommand
             && robot.pos == other.robot.pos && robot.orientation == other.robot.orientation && idx == other.idx
+//            && robot.activeBoosters == other.robot.activeBoosters
 
-    override fun hashCode(): Int = Objects.hash(robot.pos, robot.orientation, idx)
+    override fun hashCode(): Int = Objects.hash(robot.pos, robot.orientation /*, robot.activeBoosters */, idx)
 }
 
 fun simulatingAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
@@ -33,7 +34,7 @@ fun simulatingAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
         },
         goal = { it.sim.gameMap[target].status == Status.WRAP },
         neighbours = { it.neighbors.asSequence() }
-)?.dropLast(1).orEmpty().map { it.command }.reversed()
+)?.dropLast(1)?.map { it.command }?.reversed() ?: listOf(NOOP)
 
 fun simulatingEnclosedAStar(sim: Simulator, target: Point, idx: Int) = aStarSearch(
         SimulatorAndCommand(sim, NOOP, idx),
@@ -61,13 +62,13 @@ fun simulatingAStarForWalking(sim: Simulator, target: Point, idx: Int) = aStarSe
         },
         goal = { target == it.sim.currentRobots[it.idx].pos },
         neighbours = { it.neighbors.asSequence() }
-)?.dropLast(1).orEmpty().map { it.command }.reversed()
+)?.dropLast(1)?.map { it.command }?.reversed() ?: listOf(NOOP)
 
 fun applySimulatingBoosters(sim: Simulator, idx: Int = 0) = sequence {
     when {
-        BoosterType.CLONING in sim.boosters && sim.gameMap[sim.currentRobots[idx].pos].booster == BoosterType.MYSTERY -> {
-            yield(CLONE)
-        }
+//        BoosterType.CLONING in sim.boosters && sim.gameMap[sim.currentRobots[idx].pos].booster == BoosterType.MYSTERY -> {
+//            yield(CLONE)
+//        }
         BoosterType.MANIPULATOR_EXTENSION in sim.boosters -> {
             val manipulatorXRange = sim.currentRobots[idx].manipulators.map { it.v0 }.sorted()
             val manipulatorYRange = sim.currentRobots[idx].manipulators.map { it.v1 }.sorted()
@@ -112,6 +113,10 @@ fun applySimulatingBoosters(sim: Simulator, idx: Int = 0) = sequence {
         BoosterType.FAST_WHEELS in sim.boosters && BoosterType.FAST_WHEELS !in sim.currentRobots[idx].activeBoosters -> {
             val speedUpCommand = USE_FAST_WHEELS
             yield(speedUpCommand)
+        }
+        BoosterType.DRILL in sim.boosters && BoosterType.DRILL !in sim.currentRobots[idx].activeBoosters -> {
+            val useDrillCommand = USE_DRILL
+            yield(useDrillCommand)
         }
     }
 }
@@ -166,12 +171,14 @@ fun evenSmarterPrioritySimulatingAstarBot(simref: MutableRef<Simulator>, points:
 
                 yieldAll(applySimulatingBoosters(sim, idx))
 
-                val closestBooster = checkNearestBooster(sim, currentRobot()) {
-                    it.booster == BoosterType.MANIPULATOR_EXTENSION || it.booster == BoosterType.FAST_WHEELS
+                val booster = checkNearestBooster(sim, currentRobot()) {
+                    it.booster == BoosterType.MANIPULATOR_EXTENSION
+                            || it.booster == BoosterType.FAST_WHEELS
+                            || it.booster == BoosterType.DRILL
                 }
 
-                if (closestBooster != null) {
-                    val local = simulatingAStarForWalking(sim, closestBooster, idx)
+                if (booster != null) {
+                    val local = simulatingAStarForWalking(sim, booster, idx)
                     yieldAll(local)
                 }
 
@@ -209,7 +216,9 @@ fun theMostSmartestPrioritySimulatingAstarBot(simref: MutableRef<Simulator>, poi
                 val local = simulatingAStar(sim, target.first, idx)
                 for (command in local) {
                     val booster = checkNearestBooster(sim, currentRobot()) {
-                        it.booster == BoosterType.MANIPULATOR_EXTENSION || it.booster == BoosterType.FAST_WHEELS
+                        it.booster == BoosterType.MANIPULATOR_EXTENSION
+                                || it.booster == BoosterType.FAST_WHEELS
+                                || it.booster == BoosterType.DRILL
                     }
                     if (booster != null) {
                         val pathToBooster = simulatingAStarForWalking(sim, booster, idx)

@@ -7,6 +7,7 @@ import ru.spbstu.map.BoosterType.*
 import ru.spbstu.map.Status.*
 import ru.spbstu.util.dec
 import ru.spbstu.util.inc
+import ru.spbstu.util.log
 import java.awt.Color
 import java.awt.Color.*
 import java.awt.Dimension
@@ -302,7 +303,7 @@ internal constructor(val ignore: Any?,
 
             is USE_DRILL -> {
                 if (DRILL !in newBoosters) die(idx, "Cannot use drill")
-                newBoosters = newBoosters.dec(FAST_WHEELS)
+                newBoosters = newBoosters.dec(DRILL)
 
                 val activeBoosters = newCurrentRobot.activeBoosters.toMutableMap()
                 activeBoosters[DRILL] = DRILL.timer + 1 // will tick down immediately
@@ -405,8 +406,9 @@ internal constructor(val ignore: Any?,
 
 }
 
-class SimFrame(val cellSize: Int, val mutSim: () -> Simulator) : JFrame() {
+class SimFrame(val iname: String, val cellSize: Int, val mutSim: () -> Simulator) : JFrame() {
     init {
+        title = iname
         add(panel())
         pack()
         isVisible = true
